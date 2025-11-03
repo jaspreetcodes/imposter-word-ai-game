@@ -1,0 +1,43 @@
+/* Card flip animation */
+.flip-card {
+  perspective: 900px;
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.flip-card .flip-card-inner {
+  width: 100%;
+  height: 120px;
+  position: relative;
+  transition: transform 360ms ease;
+  transform-style: preserve-3d;
+}
+
+.flip-card.revealed .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card .flip-card-front,
+.flip-card .flip-card-back {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+  backface-visibility: hidden;
+  font-weight: 700;
+}
+
+.flip-card .flip-card-front {
+  color: #111827;
+}
+
+.flip-card .flip-card-back {
+  transform: rotateY(180deg);
+  color: #111827;
+}
