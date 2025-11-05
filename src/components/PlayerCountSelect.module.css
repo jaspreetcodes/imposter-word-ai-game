@@ -1,0 +1,105 @@
+.wrap {
+  min-height: calc(100svh - 73px);
+  display: grid;
+  place-items: center;
+  background: var(--bg-primary);
+  padding: 24px;
+  transition: background-color 0.3s ease;
+}
+
+.card {
+  width: min(520px, calc(100vw - 48px));
+  max-width: 520px;
+  background: var(--bg-card-gradient);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 8px 24px var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+
+.label {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  font-size: 16px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-secondary);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--border-hover);
+  box-shadow: 0 0 0 3px var(--shadow);
+}
+
+.button {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: none;
+  background: var(--button-bg);
+  color: var(--button-text);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.button:hover {
+  filter: brightness(var(--button-hover-brightness));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--shadow);
+}
+
+.button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 24px;
+    width: min(520px, calc(100vw - 32px));
+  }
+
+  .title {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .wrap {
+    padding: 16px;
+  }
+
+  .card {
+    padding: 20px;
+    width: min(520px, calc(100vw - 32px));
+  }
+}

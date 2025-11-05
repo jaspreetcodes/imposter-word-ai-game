@@ -1,3 +1,53 @@
+/* Reset and Theme Variables */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+}
+
+:root {
+  /* Light theme (default) */
+  --bg-primary: #d9d9d9;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-gradient: linear-gradient(180deg, #d8eeff, #e6f1f2);
+  --text-primary: #284b63;
+  --text-secondary: #3c6e71;
+  --border-color: #3c6e71;
+  --border-hover: #284b63;
+  --shadow: rgba(40, 75, 99, 0.2);
+  --button-bg: #353535;
+  --button-text: #ffffff;
+  --button-hover-brightness: 0.85;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #353535;
+  --bg-secondary: #284b63;
+  --bg-card: #284b63;
+  --bg-card-gradient: linear-gradient(180deg, #353535, #364e51);
+  --text-primary: #ffffff;
+  --text-secondary: #d9d9d9;
+  --border-color: #3c6e71;
+  --border-hover: #3c6e71;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --button-bg: #d9d9d9;
+  --button-text: #353535;
+  --button-hover-brightness: 1.15;
+}
+
+body {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
 /* Card flip animation */
 .flip-card {
   perspective: 900px;
@@ -5,6 +55,10 @@
   padding: 0;
   background: transparent;
   cursor: pointer;
+}
+
+.flip-card:disabled {
+  cursor: not-allowed;
 }
 
 .flip-card .flip-card-inner {
@@ -25,19 +79,26 @@
   inset: 0;
   display: grid;
   place-items: center;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--bg-card-gradient);
+  box-shadow: 0 12px 32px var(--shadow);
   backface-visibility: hidden;
   font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.flip-card:hover:not(:disabled) .flip-card-front {
+  border-color: var(--border-hover);
+  box-shadow: 0 16px 40px var(--shadow);
+  transform: translateY(-2px);
 }
 
 .flip-card .flip-card-front {
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .flip-card .flip-card-back {
   transform: rotateY(180deg);
-  color: #111827;
+  color: var(--text-secondary);
 }
