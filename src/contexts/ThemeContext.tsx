@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import type { ReactNode } from "react";
+import { STORAGE_KEYS } from "../constants/strings";
 
 type Theme = "light" | "dark";
 
@@ -11,12 +13,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem("theme");
+    const saved = localStorage.getItem(STORAGE_KEYS.THEME);
     return (saved as Theme) || "light";
   });
 
   useEffect(() => {
-    localStorage.setItem("theme", theme);
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
