@@ -116,4 +116,4 @@ This project is private and not licensed for public use.
 
 ## 👤 Author
 
-Built as a portfolio project demonstrating modern React development practices, TypeScript proficiency, and UI/UX design skills.
+Built as a proof of concept and portfolio project demonstrating modern React development practices, TypeScript proficiency, UI/UX design skills and integration of AI.
