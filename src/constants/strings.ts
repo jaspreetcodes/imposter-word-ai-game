@@ -18,7 +18,7 @@ export const TERMS = {
 // UI Strings
 export const UI_STRINGS = {
   // HomePage
-  HOME_SUBTITLE: "A multilingual mafia word game powered by AI.",
+  HOME_SUBTITLE: "A multilingual mafia/imposter word game powered by AI.",
   HOME_HOW_TO_PLAY: "How to Play",
   HOME_PICK_PLAYERS: "Pick the number of players and start a round.",
   HOME_SECRET_WORD: "Everyone gets the same secret word—except one Mafia.",
