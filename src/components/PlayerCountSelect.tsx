@@ -177,3 +177,135 @@ const modalActions: React.CSSProperties = {
   gap: 12,
   justifyContent: "flex-end",
 };
+
+
+// import React, { useState } from "react";
+// import { useNavigate } from "react-router-dom";
+// import styles from "./PlayerCountSelect.module.css";
+// import { ROUTES } from "../constants/strings";
+// import type {
+//   SelectedFilters,
+// } from "../components/CategoriesSelector";
+// import CategoriesSelector from "../components/CategoriesSelector";
+
+// export default function PlayerCountSelect() {
+//   const navigate = useNavigate();
+//   const [players, setPlayers] = useState(3);
+//   const [showCategories, setShowCategories] = useState(false);
+
+//   // store chosen filters for later use (AI / word pool)
+//   const [selectedFilters, setSelectedFilters] = useState<SelectedFilters>({
+//     categories: [],
+//     languages: [],
+//     regions: [],
+//   });
+
+//   const handleStart = () => {
+//     // TODO: send players + selectedFilters via context / search params
+//     navigate(ROUTES.GAME.replace(":players", String(players)));
+//   };
+
+//   return (
+//     <main className={styles.wrap}>
+//       <section className={styles.card}>
+//         <h1 className={styles.title}>Game Settings</h1>
+
+//         {/* Player count select */}
+//         <label className={styles.label}>
+//           Number of players
+//           <select
+//             className={styles.select}
+//             value={players}
+//             onChange={(e) => setPlayers(parseInt(e.target.value, 10))}
+//           >
+//             {Array.from({ length: 24 }, (_, i) => i + 2).map((n) => (
+//               <option key={n} value={n}>
+//                 {n}
+//               </option>
+//             ))}
+//           </select>
+//         </label>
+
+//         {/* Button to open categories modal */}
+//         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "15px"}}>
+//         <button
+//           type="button"
+//           className={styles.secondaryBtn}
+//           onClick={() => setShowCategories(true)}
+//         >
+//           ⚙️ Categories, Languages & Regions
+//         </button>
+
+//         </div>
+//         <div className={styles.ctaRow}>
+//           <button className={styles.playBtn} onClick={handleStart}>
+//             Start Game
+//           </button>
+//         </div>
+//       </section>
+
+//       {/* Modal for categories */}
+//       {showCategories && (
+//         <div
+//           className={styles.modalOverlay}
+//           onClick={() => setShowCategories(false)}
+//         >
+//           <div
+//             className={styles.modal}
+//             onClick={(e) => e.stopPropagation()}
+//           >
+//             <div className={styles.modalHeader}>
+//               <h2 className={styles.modalTitle}>Customize Word Sources</h2>
+//               <button
+//                 className={styles.modalClose}
+//                 onClick={() => setShowCategories(false)}
+//                 aria-label="Close"
+//               >
+//                 ×
+//               </button>
+//             </div>
+
+//             <CategoriesSelector 
+//               onChangeSelected={(sel) => setSelectedFilters(sel)}
+//             />
+
+//             <div className={styles.modalFooter}>
+//               <button
+//                 className={styles.modalSaveBtn}
+//                 onClick={() => setShowCategories(false)}
+//               >
+//                 Done
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </main>
+//   );
+// }
+
+// const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+// const options = useMemo(() => {
+//   const nums: number[] = [];
+//   for (let i = 2; i <= 25; i++) nums.push(i);
+//   return nums;
+// }, []);
+
+// const categoryNames = useMemo(() => {
+//   const s = new Set<string>();
+//   for (const w of words as any[]) {
+//     if (w?.name) s.add(w.name);
+//   }
+//   return Array.from(s).sort();
+// }, []);
+
+// const toggleCategory = (name: string) => {
+//   setSelectedCategories(prev => {
+//     if (prev.includes(name)) {
+//       return prev.filter(c => c !== name);
+//     } else {
+//       return [...prev, name];
+//     }
+//   });
+// };

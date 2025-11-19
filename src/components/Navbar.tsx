@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import styles from "./Navbar.module.css";
 import { GAME_NAME, ROUTES } from "../constants/strings";
+// import Logo from "../../../imposter-word-ai-game/public/redmafia.svg";
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
@@ -9,6 +10,9 @@ export default function Navbar() {
   
   return (
     <nav className={styles.navbar}>
+      {/* <div className="logoWrap">
+        <Logo className="navLogo" />
+      </div> */}
       <h1 style={{ cursor: "pointer" }} onClick={() => navigate(ROUTES.HOME)} className={styles.title}>{GAME_NAME}</h1>
       <button
         onClick={toggleTheme}

@@ -12,7 +12,7 @@ export interface GameState {
   selectedCategories: string[]; // selected categories for word selection
 }
 
-interface GameContextType extends GameState {
+export interface GameContextType extends GameState {
   startGame: (players: number, selectedCategories?: string[]) => void;
   pickCategoryAndWord: (selectedCategories?: string[]) => { categoryName: string; word: string };
   markRevealed: (playerId: number) => void;
