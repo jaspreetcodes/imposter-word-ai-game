@@ -112,7 +112,200 @@ export const words = [
     },
 
     {
-      "name": "Indian Foods",
+      "name": "Names",
+      "difficulty": "easy",
+      "words": ["Alex", "Emma", "James", "Sarah", "Michael", "Olivia", "David", "Sophia", "Daniel", "Isabella"]
+    },
+    {
+      "name": "Names",
+      "difficulty": "medium",
+      "words": ["Christopher", "Elizabeth", "Alexander", "Victoria", "Benjamin", "Charlotte", "Theodore", "Amelia", "Sebastian", "Mia"]
+    },
+    {
+      "name": "Names",
+      "difficulty": "hard",
+      "words": ["Penelope", "Nathaniel", "Evangeline", "Bartholomew", "Seraphina", "Montgomery", "Guinevere", "Archibald", "Beatrix", "Wellington"]
+    },
+
+    {
+      "name": "Chemicals",
+      "difficulty": "easy",
+      "words": ["Water", "Salt", "Sugar", "Oxygen", "Carbon", "Alcohol", "Vinegar", "Soap", "Baking Soda", "Lemon"]
+    },
+    {
+      "name": "Chemicals",
+      "difficulty": "medium",
+      "words": ["Ammonia", "Hydrogen", "Nitrogen", "Chlorine", "Sulfuric Acid", "Ethanol", "Glucose", "Calcium", "Potassium", "Sodium"]
+    },
+    {
+      "name": "Chemicals",
+      "difficulty": "hard",
+      "words": ["Acetone", "Benzene", "Formaldehyde", "Methanol", "Propane", "Acetylene", "Glycerol", "Citric Acid", "Lactose", "Caffeine"]
+    },
+
+    {
+      "name": "Music",
+      "difficulty": "easy",
+      "words": ["Piano", "Guitar", "Drum", "Song", "Singer", "Band", "Concert", "Album", "Radio", "Microphone"]
+    },
+    {
+      "name": "Music",
+      "difficulty": "medium",
+      "words": ["Violin", "Saxophone", "Trumpet", "Orchestra", "Jazz", "Rock", "Classical", "Rhythm", "Melody", "Chord"]
+    },
+    {
+      "name": "Music",
+      "difficulty": "hard",
+      "words": ["Harpsichord", "Theremin", "Synthesizer", "Symphony", "Sonata", "Concerto", "Baroque", "Aria", "Overture", "Cadenza"]
+    },
+
+    {
+      "name": "Science",
+      "difficulty": "easy",
+      "words": ["Earth", "Sun", "Moon", "Star", "Planet", "Atom", "Gravity", "Light", "Magnet", "Battery"]
+    },
+    {
+      "name": "Science",
+      "difficulty": "medium",
+      "words": ["Molecule", "Evolution", "Telescope", "Microscope", "Experiment", "DNA", "Solar System", "Eclipse", "Volcano", "Fossil"]
+    },
+    {
+      "name": "Science",
+      "difficulty": "hard",
+      "words": ["Photosynthesis", "Electromagnetism", "Quantum", "Chromosome", "Particle", "Black Hole", "Neutron", "Isotope", "Catalyst", "Enzyme"]
+    },
+
+    {
+      "name": "Basic Words",
+      "difficulty": "easy",
+      "words": ["Run", "Jump", "Eat", "Sleep", "Read", "Write", "Love", "Happy", "Big", "Small"]
+    },
+    {
+      "name": "Basic Words",
+      "difficulty": "medium",
+      "words": ["Adventure", "Mountain", "Ocean", "Forest", "Sunset", "Morning", "Whisper", "Wonder", "Journey", "Moment"]
+    },
+    {
+      "name": "Basic Words",
+      "difficulty": "hard",
+      "words": ["Serendipity", "Ephemeral", "Quintessential", "Melancholy", "Paradox", "Nostalgia", "Resilience", "Euphoria", "Solitude", "Vulnerability"]
+    },
+
+    {
+      "name": "Colors & Shades",
+      "difficulty": "easy",
+      "words": ["Red", "Blue", "Green", "Yellow", "Black", "White", "Orange", "Pink", "Purple", "Brown"]
+    },
+    {
+      "name": "Colors & Shades",
+      "difficulty": "medium",
+      "words": ["Crimson", "Turquoise", "Magenta", "Beige", "Navy", "Maroon", "Coral", "Indigo", "Teal", "Amber"]
+    },
+    {
+      "name": "Colors & Shades",
+      "difficulty": "hard",
+      "words": ["Vermillion", "Chartreuse", "Cerulean", "Saffron", "Umber", "Ochre", "Azure", "Scarlet", "Viridian", "Cobalt"]
+    },
+
+    {
+      "name": "Entertainment",
+      "difficulty": "easy",
+      "words": ["Movie", "Game", "Concert", "Comedy", "Dance", "Music", "Theater", "Cartoon", "Podcast", "Streaming"]
+    },
+    {
+      "name": "Entertainment",
+      "difficulty": "medium",
+      "words": ["Broadway", "Festival", "Stand-up", "Documentary", "Animation", "Reality Show", "Talk Show", "Soap Opera", "Game Show", "Sitcom"]
+    },
+    {
+      "name": "Entertainment",
+      "difficulty": "hard",
+      "words": ["Improvisation", "Symphony", "Opera", "Ballet", "Cabaret", "Pantomime", "Vaudeville", "Orchestra", "Choreography", "Repertoire"]
+    },
+
+    {
+      "name": "Famous People",
+      "difficulty": "easy",
+      "words": ["Einstein", "Shakespeare", "Newton", "Mozart", "Da Vinci", "Cleopatra", "Napoleon", "Beethoven", "Galileo", "Tesla"]
+    },
+    {
+      "name": "Famous People",
+      "difficulty": "medium",
+      "words": ["Michelangelo", "Marie Curie", "Charles Darwin", "Leonardo", "Pablo Picasso", "Winston Churchill", "Gandhi", "Nelson Mandela", "Frida Kahlo", "Steve Jobs"]
+    },
+    {
+      "name": "Famous People",
+      "difficulty": "hard",
+      "words": ["Hypatia", "Archimedes", "Aristotle", "Confucius", "Socrates", "Plato", "Copernicus", "Kepler", "Descartes", "Kant"]
+    },
+
+    {
+      "name": "Geography",
+      "difficulty": "easy",
+      "words": ["Mountain", "River", "Ocean", "Island", "Desert", "Forest", "Lake", "Valley", "Beach", "Volcano"]
+    },
+    {
+      "name": "Geography",
+      "difficulty": "medium",
+      "words": ["Himalayas", "Amazon", "Sahara", "Mediterranean", "Everest", "Pacific", "Antarctica", "Tropic", "Equator", "Peninsula"]
+    },
+    {
+      "name": "Geography",
+      "difficulty": "hard",
+      "words": ["Archipelago", "Tundra", "Savanna", "Canyon", "Fjord", "Delta", "Strait", "Plateau", "Glacier", "Atoll"]
+    },
+
+    {
+      "name": "Literature",
+      "difficulty": "easy",
+      "words": ["Book", "Story", "Poem", "Author", "Novel", "Chapter", "Hero", "Villain", "Mystery", "Fantasy"]
+    },
+    {
+      "name": "Literature",
+      "difficulty": "medium",
+      "words": ["Shakespeare", "Hamlet", "Odyssey", "Metaphor", "Allegory", "Sonnet", "Epic", "Fable", "Satire", "Tragedy"]
+    },
+    {
+      "name": "Literature",
+      "difficulty": "hard",
+      "words": ["Kafkaesque", "Dystopia", "Protagonist", "Antagonist", "Irony", "Allusion", "Hyperbole", "Synecdoche", "Onomatopoeia", "Personification"]
+    },
+
+    {
+      "name": "Artists",
+      "difficulty": "easy",
+      "words": ["Painter", "Sculptor", "Musician", "Singer", "Actor", "Director", "Writer", "Dancer", "Photographer", "Designer"]
+    },
+    {
+      "name": "Artists",
+      "difficulty": "medium",
+      "words": ["Van Gogh", "Picasso", "Monet", "Rembrandt", "Michelangelo", "Da Vinci", "Warhol", "Dalí", "Kahlo", "Pollock"]
+    },
+    {
+      "name": "Artists",
+      "difficulty": "hard",
+      "words": ["Caravaggio", "Vermeer", "Botticelli", "Raphael", "Goya", "Cézanne", "Matisse", "Kandinsky", "Klimt", "Munch"]
+    },
+
+    {
+      "name": "Technology",
+      "difficulty": "easy",
+      "words": ["Phone", "Computer", "Internet", "App", "Email", "Robot", "Camera", "Screen", "Keyboard", "WiFi"]
+    },
+    {
+      "name": "Technology",
+      "difficulty": "medium",
+      "words": ["Algorithm", "Software", "Hardware", "Database", "Cloud", "Artificial Intelligence", "Virtual Reality", "Cryptocurrency", "Browser", "Server"]
+    },
+    {
+      "name": "Technology",
+      "difficulty": "hard",
+      "words": ["Blockchain", "Machine Learning", "Neural Network", "Encryption", "API", "Framework", "Quantum Computing", "Cybersecurity", "Open Source", "DevOps"]
+    },
+
+    {
+      "name": "Food",
+      "difficulty": "medium",
       "region": "India",
       "words": ["Samosa", "Chai", "Roti", "Biryani", "Lassi", "Paneer", "Gulab Jamun"]
     }

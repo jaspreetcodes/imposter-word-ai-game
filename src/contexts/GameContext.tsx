@@ -1,31 +1,50 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { words as allWords } from "../assets/words";
+import { words as allWords } from "../assets/words"; // Fallback
 import { STORAGE_KEYS } from "../constants/strings";
+import { fetchWords, type WordFilters } from "../services/wordsService";
 
 export interface GameState {
   players: number;
   categoryName: string | null;
   word: string | null;
+  wordError?: string | null;
+  wordLanguage?: string | null; // language[0] of chosen word
+  wordRegion?: string | null;   // region[0] / origin of chosen word
   mafiaId: number | null;
   revealedIds: number[]; // store as array for serialization
   selectedCategories: string[]; // selected categories for word selection
+  selectedLanguages?: string[]; // selected languages for word selection
+  selectedRegions?: string[]; // selected regions for word selection
 }
 
 export interface GameContextType extends GameState {
-  startGame: (players: number, selectedCategories?: string[]) => void;
-  pickCategoryAndWord: (selectedCategories?: string[]) => { categoryName: string; word: string };
+  startGame: (
+    players: number, 
+    selectedCategories?: string[], 
+    selectedLanguages?: string[],
+    selectedRegions?: string[]
+  ) => Promise<void>;
+  pickCategoryAndWord: (
+    selectedCategories?: string[], 
+    selectedLanguages?: string[],
+    selectedRegions?: string[]
+  ) => Promise<{ categoryName: string | null; word: string | null; wordLanguage?: string | null; wordRegion?: string | null; error?: string | null }>;
   markRevealed: (playerId: number) => void;
   resetGame: () => void;
+  isLoadingWords: boolean;
 }
 
 const DEFAULT_STATE: GameState = {
   players: 0,
   categoryName: null,
   word: null,
+  wordError: null,
   mafiaId: null,
   revealedIds: [],
   selectedCategories: [],
+  selectedLanguages: [],
+  selectedRegions: [],
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -46,9 +65,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
           players: parsed.players || 0,
           categoryName: parsed.categoryName || null,
           word: parsed.word || null,
+          wordLanguage: parsed.wordLanguage ?? null,
+          wordRegion: parsed.wordRegion ?? null,
           mafiaId: parsed.mafiaId || null,
           revealedIds: parsed.revealedIds || [],
           selectedCategories: parsed.selectedCategories || [],
+          selectedLanguages: parsed.selectedLanguages || [],
+          selectedRegions: parsed.selectedRegions || [],
         } as GameState;
       }
       return DEFAULT_STATE;
@@ -57,12 +80,98 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   });
 
+  const [isLoadingWords, setIsLoadingWords] = useState(false);
+
   useEffect(() => {
     sessionStorage.setItem(STORAGE_KEYS.GAME_STATE, JSON.stringify(state));
   }, [state]);
 
-  const pickCategoryAndWord = (selectedCategories?: string[]) => {
-    // Filter words based on selected categories
+  const pickCategoryAndWord = async (
+    selectedCategories?: string[],
+    selectedLanguages?: string[],
+    selectedRegions?: string[]
+  ): Promise<{ categoryName: string | null; word: string | null; wordLanguage?: string | null; wordRegion?: string | null; error?: string | null }> => {
+    setIsLoadingWords(true);
+    try {
+      // Build filters for Firebase query
+      const filters: WordFilters = {};
+      
+      if (selectedCategories && selectedCategories.length > 0) {
+        filters.categories = selectedCategories;
+      }
+      
+      if (selectedLanguages && selectedLanguages.length > 0) {
+        filters.languages = selectedLanguages;
+      }
+      
+      if (selectedRegions && selectedRegions.length > 0) {
+        filters.regions = selectedRegions;
+      }
+
+      console.log("🎮 Picking word with filters:", {
+        categories: selectedCategories,
+        languages: selectedLanguages,
+        regions: selectedRegions,
+      });
+
+      // Fetch words from Firebase (STRICT: categories + language + region)
+      const words = await fetchWords(filters);
+
+      if (words.length === 0) {
+        return {
+          categoryName: null,
+          word: null,
+          wordLanguage: null,
+          wordRegion: null,
+          error:
+            "No word exists for the selected Categories + Language + Region filters. Please change filters and try again.",
+        };
+      }
+
+      // Group words by category (keep full doc for language/region)
+      const wordsByCategory: Record<string, typeof words> = {};
+      words.forEach((wordDoc) => {
+        if (!wordsByCategory[wordDoc.category]) {
+          wordsByCategory[wordDoc.category] = [];
+        }
+        wordsByCategory[wordDoc.category].push(wordDoc);
+      });
+
+      const categories = Object.keys(wordsByCategory);
+      if (categories.length === 0) {
+        return {
+          categoryName: null,
+          word: null,
+          wordLanguage: null,
+          wordRegion: null,
+          error:
+            "No word exists for the selected filters. Please change filters and try again.",
+        };
+      }
+
+      const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+      const categoryDocs = wordsByCategory[randomCategory];
+      const chosenDoc = categoryDocs[Math.floor(Math.random() * categoryDocs.length)];
+
+      return {
+        categoryName: randomCategory,
+        word: chosenDoc.word,
+        wordLanguage: chosenDoc.languages?.[0] ?? null,
+        wordRegion: chosenDoc.regions?.[0] ?? null,
+        error: null,
+      };
+    } catch (error) {
+      console.error("Error fetching words from Firebase:", error);
+      // ONLY fallback to local words if Firebase is not linked / failing
+      const local = pickCategoryAndWordLocal(selectedCategories);
+      return { categoryName: local.categoryName, word: local.word, wordLanguage: null, wordRegion: null, error: null };
+    } finally {
+      setIsLoadingWords(false);
+    }
+  };
+
+  // Fallback function using local words
+  const pickCategoryAndWordLocal = (selectedCategories?: string[]) => {
     let pool = allWords;
     if (selectedCategories && selectedCategories.length > 0) {
       const categorySet = new Set(selectedCategories.map(c => c.toLowerCase()));
@@ -81,16 +190,30 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return { categoryName: cat.name as string, word };
   };
 
-  const startGame = (players: number, selectedCategories?: string[]) => {
-    const { categoryName: chosenCategory, word } = pickCategoryAndWord(selectedCategories);
+  const startGame = async (
+    players: number, 
+    selectedCategories?: string[],
+    selectedLanguages?: string[],
+    selectedRegions?: string[]
+  ) => {
+    const { categoryName: chosenCategory, word, wordLanguage, wordRegion, error } = await pickCategoryAndWord(
+      selectedCategories,
+      selectedLanguages,
+      selectedRegions
+    );
     const mafiaId = Math.max(1, Math.floor(Math.random() * players) + 1);
     setState({ 
       players, 
       categoryName: chosenCategory, 
       word, 
+      wordError: error ?? null,
+      wordLanguage: wordLanguage ?? null,
+      wordRegion: wordRegion ?? null,
       mafiaId, 
       revealedIds: [],
-      selectedCategories: selectedCategories || []
+      selectedCategories: selectedCategories || [],
+      selectedLanguages: selectedLanguages || [],
+      selectedRegions: selectedRegions || [],
     });
   };
 
@@ -109,7 +232,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     pickCategoryAndWord,
     markRevealed,
     resetGame,
-  }), [state]);
+    isLoadingWords,
+  }), [state, isLoadingWords]);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }

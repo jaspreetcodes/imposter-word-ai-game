@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import styles from "./HomePage.module.css";
 import { GAME_NAME, UI_STRINGS, ROUTES } from "../constants/strings";
 
@@ -20,6 +21,7 @@ function Chevron({ open }: { open: boolean }) {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [open, setOpen] = useState({ howToPlay: true, ai: false, tips: false });
   const toggle = (k: keyof typeof open) => setOpen((s) => ({ ...s, [k]: !s[k] }));
 
@@ -92,8 +94,14 @@ export default function HomePage() {
 
         <div className={styles.ctaRow}>
           <button className={styles.playBtn} onClick={() => navigate(ROUTES.SETUP)}>
-            {UI_STRINGS.HOME_PLAY_BUTTON}
+            {UI_STRINGS.HOME_PLAY_BUTTON} (Local)
           </button>
+          {!user && (
+            <button className={styles.playBtn} onClick={() => navigate(ROUTES.LOGIN)}>
+              {UI_STRINGS.AUTH_SIGN_IN} to Play Online
+            </button>
+          )}
+          {/* Create Room / Join Room buttons hidden for now */}
         </div>
       </section>
     </main>

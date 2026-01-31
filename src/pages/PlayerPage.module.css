@@ -35,6 +35,13 @@
   transition: color 0.3s ease;
 }
 
+.meta {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
 .content {
   text-align: center;
   flex: 1;
@@ -85,6 +92,23 @@
   color: var(--text-secondary);
   font-style: italic;
   transition: color 0.3s ease;
+}
+
+.toggleButton {
+  width: 100%;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggleButton:hover {
+  background: var(--bg-card);
 }
 
 .hideButton {

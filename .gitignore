@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +26,11 @@ dist-ssr
 *.sln
 *.sw?
 newImages/
+
+# Word pipeline cache (large JSON; run scripts to regenerate)
+scripts/wordPipeline/cache/
+
+# Unused/large word lists (not used at runtime; Firebase/seed data used instead)
+public/word_list.json
+public/words_list.txt
+public/words_list2.txt

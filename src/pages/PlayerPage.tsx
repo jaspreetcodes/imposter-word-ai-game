@@ -7,7 +7,7 @@ import { UI_STRINGS, ROUTES } from "../constants/strings";
 export default function PlayerPage() {
   const { playerId } = useParams<{ playerId: string }>();
   const navigate = useNavigate();
-  const { categoryName, word, mafiaId, markRevealed } = useGame();
+  const { categoryName, word, wordError, wordLanguage, wordRegion, mafiaId, markRevealed } = useGame();
   const [showWord, setShowWord] = useState(true);
   const [timeoutId, setTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
 
@@ -39,15 +39,32 @@ export default function PlayerPage() {
       <div className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.title}>{UI_STRINGS.PLAYER_CATEGORY_LABEL} {categoryName ?? "—"}</h1>
+          {(wordLanguage || wordRegion) && (
+            <p className={styles.meta}>
+              {wordLanguage && <span>Language: {wordLanguage}</span>}
+              {wordLanguage && wordRegion && " · "}
+              {wordRegion && <span>Origin: {wordRegion}</span>}
+            </p>
+          )}
         </div>
 
         <div className={styles.content}>
+          {wordError && (
+            <div className={styles.wordHidden}>
+              <p><strong>No matching word found.</strong></p>
+              <p>{wordError}</p>
+              <button
+                onClick={() => navigate(ROUTES.SETUP)}
+                className={styles.hideButton}
+                style={{ marginTop: 12 }}
+              >
+                Change filters
+              </button>
+            </div>
+          )}
+
           {showWord && (
-            <div 
-              className={styles.wordContainer}
-              onClick={finishAndBack}
-              style={{ cursor: 'pointer' }}
-            >
+            <div className={styles.wordContainer}>
               <p className={styles.word}>{isMafia ? UI_STRINGS.PLAYER_MAFIA_MESSAGE : (word ?? "—")}</p>
             </div>
           )}
@@ -59,6 +76,13 @@ export default function PlayerPage() {
           )}
         </div>
 
+        <button
+          type="button"
+          onClick={() => setShowWord((prev) => !prev)}
+          className={styles.toggleButton}
+        >
+          {showWord ? "Hide word" : "Show word"}
+        </button>
         <button onClick={finishAndBack} className={styles.hideButton}>
           {UI_STRINGS.PLAYER_HIDE_BUTTON}
         </button>

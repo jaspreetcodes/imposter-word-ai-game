@@ -21,6 +21,139 @@ A modern, multiplayer social deduction word game where players must identify the
 - **Type-Safe**: Built with TypeScript for robust type checking
 - **Centralized Strings**: Maintainable codebase with centralized UI text management
 
+## 👤 User Experience (UX) Walkthrough
+
+This section walks through the game from first visit to final reveal. Screenshots illustrate each step.
+
+---
+
+### 1. Landing & Sign-In (Optional)
+
+**Where:** Home page (`/`)
+
+- Users land on the main card with the game name, subtitle, and collapsible sections: **How to Play**, **Words from everywhere (AI-powered)**, and **Tips**.
+- **Play (Local)** is always available: no account required. Tapping it goes straight to setup.
+- **Sign in to Play Online** appears when the user is not logged in; after sign-up or sign-in, that button is replaced by the authenticated state (Create Room / Join Room are currently hidden).
+<p align="center">
+  <img src="public/assets/Screenshot1.png" alt="Home page with Play (Local) and optional sign-in" width="800" />
+</p>
+<p align="center"><em>Home page with Play (Local) and optional sign-in.</em></p>
+
+---
+
+### 2. Game Setup & Player Count
+
+**Where:** Setup page (`/setup`)
+
+- User chooses **number of players** (2–25) via a dropdown.
+- **Enter** starts the game immediately with default categories and filters.
+- **Categories** opens the category/language/region selector modal (next step).
+<p align="center">
+  <img src="public/assets/Screenshot2.png" alt="Setup screen with player count and Enter / Categories buttons" width="800" />
+</p>
+<p align="center"><em>Setup screen with player count and Enter / Categories buttons.</em></p>
+---
+
+### 3. Categories, Languages & Regions
+
+**Where:** Categories modal (opened from Setup)
+
+- **Categories:** All game categories (Food, Animals, Music, Science, etc.) appear as chips. Users toggle which categories are active; only words from selected categories (or all if none selected) are used.
+- **Play mode – existing data only:** Languages and regions are **existing only**: the user sees chips for each language and region that already have word data (e.g. English, French, Hindi, Punjab, UK, India). They toggle which to use; the game only uses words that match these filters. No free-text add here.
+- **Generate culture-rich words (AI):** A separate section explains niche/dialect-specific words. Expanding it shows:
+  - **AI form:** Dedicated language and region autocomplete inputs (original autocomplete behaviour). A **Generate words** button is present but inactive for now; it will later trigger on-demand AI generation for new language/region combinations.
+- After choosing categories and optional languages/regions, user taps **Save & Start** to begin the game with those filters.
+<p align="center">
+  <img src="public/assets/Screenshot3a.png" alt="Categories modal with category chips, language/region chips, and AI section" width="800" />
+</p>
+<p align="center">
+  <img src="public/assets/Screenshot3b.png" alt="Categories modal with AI section expanded" width="800" />
+</p>
+<p align="center"><em>Categories modal with category chips, language/region chips, and AI section collapsed or expanded.</em></p>
+---
+
+### 4. Game Board & Player Cards
+
+**Where:** Game page (`/game`)
+
+- The board shows one card per player (e.g. “Player 1”, “Player 2”, …). Cards are face-down until a player opens their own.
+- A **Reveal the Mafia** button is available (typically after everyone has had a chance to see their card).
+- Turn order and direction (clockwise/counter-clockwise) can be suggested after reveals.
+<p align="center">
+  <img src="public/assets/Screenshotcards.png" alt="Game board with player cards and Reveal the Mafia button" width="800" />
+</p>
+<p align="center"><em>Game board with player cards and Reveal the Mafia button.</em></p>
+---
+
+### 5. Card Reveal (Word or Mafia)
+
+**Where:** Player page (`/player/:playerId`) — each player opens their own card
+
+- **Header:** Shows the **category** of the current word and, when available, **Language** and **Origin** (region) of the word (e.g. “Language: English · Origin: US”).
+- **Content:** The card shows either the **secret word** (same for all non-Mafia players) or **“You are the Mafia”** for the single Mafia player.
+- **Auto-hide:** After a short time (e.g. 10 seconds), the word/mafia status is hidden to reduce peeking; the user sees a “Word hidden” style message.
+- **Toggle:** A **Show word / Hide word** button lets the player show or hide the word/mafia status again without leaving the page.
+- **Done:** A separate button returns the player to the game board (and marks the card as revealed where applicable).
+<p align="center">
+  <img src="public/assets/Screenshotreveal.png" alt="Card reveal with word visible, language/origin, and Show word / Hide word button" width="800" />
+</p>
+<p align="center"><em>Card reveal with word visible; optional view with word hidden and Show word button.</em></p>
+---
+
+### 6. Start of Round & Direction
+
+**Where:** Game page (after card reveals)
+
+- When appropriate (e.g. after a round of reveals), a post-reveal prompt can suggest a **starting player** and **direction** (clockwise or counter-clockwise) for giving clues.
+- This sets the turn order for the clue-giving phase.
+<p align="center">
+  <img src="public/assets/Screenshot 2026-01-31 at 10.46.38 AM.png" alt="Prompt or banner showing suggested starting player and direction" width="800" />
+</p>
+<p align="center"><em>Prompt or banner showing suggested starting player and direction.</em></p>
+
+---
+
+### 7. Mafia Revelation (Voting)
+
+**Where:** Game page
+
+- The **Reveal the Mafia** action lets the group move to the voting/reveal phase when they are ready.
+- Confirmation may be shown (e.g. “Are you sure?”) to avoid accidental clicks.
+<p align="center">
+  <img src="public/assets/Screenshot%202026-01-31%20at%203.50.
+15 PM.png" alt="Reveal the Mafia button and/or confirmation dialog" width="800" />
+</p>
+<p align="center"><em>Reveal the Mafia button and/or confirmation dialog.</em></p>
+---
+
+### 8. Final Reveal (Who Was the Mafia)
+
+**Where:** Mafia reveal page (e.g. `/reveal-mafia`)
+
+- The final screen reveals **who the Mafia was** (e.g. by name or player number).
+- A **New game** (or similar) button takes users back to setup or home to play again.
+<p align="center">
+  <img src="public/assets/Screenshot%202026-01-31%20at%2010.46.
+52 AM.png" alt="Final reveal screen with Mafia identity and New game button" width="800" />
+</p>
+<p align="center"><em>Final reveal screen with Mafia identity and New game button.</em></p>
+---
+
+### Flow Summary
+
+| Step | Screen / Action        | Purpose |
+|------|------------------------|---------|
+| 1    | Home                   | Enter game; optional sign-in |
+| 2    | Setup                  | Set player count; choose Enter or Categories |
+| 3    | Categories modal       | Select categories, languages, regions; optional AI section |
+| 4    | Game board             | See player cards; Reveal the Mafia when ready |
+| 5    | Card reveal (per player) | See word or Mafia; language/origin; show/hide toggle |
+| 6    | Round start            | Suggested first player and direction for clues |
+| 7    | Reveal the Mafia       | Start voting/reveal phase |
+| 8    | Final reveal           | See Mafia identity; start new game |
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Frontend Framework**: React 19 with TypeScript
