@@ -21,6 +21,16 @@ A modern, multiplayer social deduction word game where players must identify the
 - **Type-Safe**: Built with TypeScript for robust type checking
 - **Centralized Strings**: Maintainable codebase with centralized UI text management
 
+## 🚀 Run this project once
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Then open the URL shown (e.g. http://localhost:5173). For Firebase (word DB), Geoapify (region autocomplete), or the "Generate words" flow, see **[docs/RUN_ONCE.md](docs/RUN_ONCE.md)** for env vars and optional commands (Ollama + word-gen server). To host the word-gen server on Oracle Cloud (free tier VM) and move to production, see **[docs/ORACLE_AND_PRODUCTION.md](docs/ORACLE_AND_PRODUCTION.md)**.
+
 ## 👤 User Experience (UX) Walkthrough
 
 This section walks through the game from first visit to final reveal. Screenshots illustrate each step.
@@ -59,7 +69,7 @@ This section walks through the game from first visit to final reveal. Screenshot
 **Where:** Categories modal (opened from Setup)
 
 - **Categories:** All game categories (Food, Animals, Music, Science, etc.) appear as chips. Users toggle which categories are active; only words from selected categories (or all if none selected) are used.
-- **Play mode – existing data only:** Languages and regions are **existing only**: the user sees chips for each language and region that already have word data (e.g. English, French, Hindi, Punjab, UK, India). They toggle which to use; the game only uses words that match these filters. No free-text add here.
+- **Play mode – existing data only:** Languages and regions are **existing only**: the user sees chips for each language and region that already have word data (e.g. English, French, Hindi, Punjab, India). They toggle which to use; the game only uses words that match these filters. No free-text add here.
 - **Generate culture-rich words (AI):** A separate section explains niche/dialect-specific words. Expanding it shows:
   - **AI form:** Dedicated language and region autocomplete inputs (original autocomplete behaviour). A **Generate words** button is present but inactive for now; it will later trigger on-demand AI generation for new language/region combinations.
 - After choosing categories and optional languages/regions, user taps **Save & Start** to begin the game with those filters.

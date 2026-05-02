@@ -1,0 +1,20 @@
+
+> imposter-word-ai-game@0.0.0 word-gen-server
+> tsx scripts/wordGenServer.ts
+
+Word-gen API: http://localhost:3001
+POST /api/generate-words with { language, region }
+Word generation error: ResponseError: model 'mistral-small3.2' not found
+    at checkOk (file:///Users/jaspreet/Desktop/jps_workspace1/imposter-word-ai-game/node_modules/ollama/dist/browser.mjs:73:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async post (file:///Users/jaspreet/Desktop/jps_workspace1/imposter-word-ai-game/node_modules/ollama/dist/browser.mjs:137:3)
+    at async Ollama.processStreamableRequest (file:///Users/jaspreet/Desktop/jps_workspace1/imposter-word-ai-game/node_modules/ollama/dist/browser.mjs:256:25)
+    at async ChatOllama._streamResponseChunks (file:///Users/jaspreet/Desktop/jps_workspace1/imposter-word-ai-game/node_modules/@langchain/ollama/dist/chat_models.js:756:24)
+    at async ChatOllama._generate (file:///Users/jaspreet/Desktop/jps_workspace1/imposter-word-ai-game/node_modules/@langchain/ollama/dist/chat_models.js:689:26)
+    at async Promise.allSettled (index 0)
+    at async ChatOllama._generateUncached (file:///Users/jaspreet/Desktop/jps_workspace1/imposter-word-ai-game/node_modules/@langchain/core/dist/language_models/chat_models.js:250:29)
+    at async ChatOllama.invoke (file:///Users/jaspreet/Desktop/jps_workspace1/imposter-word-ai-game/node_modules/@langchain/core/dist/language_models/chat_models.js:88:24)
+    at async generateWords (/Users/jaspreet/Desktop/jps_workspace1/imposter-word-ai-game/scripts/wordPipeline/ollamaWordGenerator.ts:150:20) {
+  error: "model 'mistral-small3.2' not found",
+  status_code: 404
+}

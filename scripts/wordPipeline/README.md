@@ -47,6 +47,33 @@ npm run word-pipeline:filter
 npm run word-pipeline:export
 ```
 
+**On-demand word generation (Ollama + LangChain):**
+
+To generate **20 words per category** (default) for **all listed categories** (Food, Animals, Movies & TV, etc.) for a given language and region. **Default model: Phi-3.5 Mini (phi3.5)** for faster runs; override with `OLLAMA_MODEL` (e.g. mistral-small3.2).
+
+1. Install and run Ollama, then pull the model: `ollama pull phi3.5` and `ollama run phi3.5` (or set `OLLAMA_MODEL=mistral-small3.2` and use that model).
+2. From project root:
+   ```bash
+   npm run word-generate:ollama
+   # defaults: English, UK, 20 per category, model phi3.5
+
+   npm run word-generate:ollama -- Punjabi Punjab
+   # 20 per category for Punjabi (Punjab)
+
+   npm run word-generate:ollama -- English UK 30
+   # 30 per category for English (UK)
+   ```
+   For server: see **docs/PHI_WORD_GENERATION.md** (run word-gen server on host, Phi-3.5 default, user-triggered generation).
+3. Output is one JSON array (word, category, languages, regions) suitable for Firestore. See `scripts/wordPipeline/ollamaWordGenerator.ts` and `docs/WORD_GENERATION_PROMPT.md`.
+
+**UI "Generate words" button (CategoriesSelector):**
+
+To use the **Generate words** button in the app (Categories → Generate culture-rich words (AI) → language + region → Generate words):
+
+1. Run the word-gen API server: `npm run word-gen-server` (listens on http://localhost:3001).
+2. Ensure Ollama is running with mistral-small3.2: `ollama run mistral-small3.2`.
+3. In the app, enter language and region, then click **Generate words**. The app calls the API, adds words to Firestore, adds the new language/region to the categories list, shows "New words added successfully", and redirects to the setup/categories page.
+
 Run full pipeline in sequence:
 
 ```bash

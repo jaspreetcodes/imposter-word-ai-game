@@ -12,15 +12,23 @@
     "word-pipeline:categorize": "tsx scripts/wordPipeline/categorizeWithMistral.ts",
     "word-pipeline:filter": "tsx scripts/wordPipeline/filterByRecognizability.ts",
     "word-pipeline:export": "tsx scripts/wordPipeline/exportToFirestore.ts",
-    "word-pipeline": "npm run word-pipeline:load && npm run word-pipeline:categorize && npm run word-pipeline:filter && npm run word-pipeline:export"
+    "word-pipeline": "npm run word-pipeline:load && npm run word-pipeline:categorize && npm run word-pipeline:filter && npm run word-pipeline:export",
+    "word-generate": "tsx scripts/wordPipeline/wordGenerator.ts",
+    "word-generate:ollama": "tsx scripts/wordPipeline/ollamaWordGenerator.ts",
+    "word-gen-server": "tsx scripts/wordGenServer.ts"
   },
   "dependencies": {
+    "dotenv": "^16.4.5",
+    "groq-sdk": "^0.37.0",
     "firebase": "^12.6.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.5"
   },
   "devDependencies": {
+    "@langchain/core": "^0.3.0",
+    "@langchain/ollama": "^0.1.0",
+    "@types/express": "^4.17.21",
     "@eslint/js": "^9.36.0",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.16",
@@ -29,6 +37,7 @@
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
+    "express": "^4.21.0",
     "globals": "^16.4.0",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",

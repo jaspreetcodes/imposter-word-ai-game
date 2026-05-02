@@ -1,10 +1,45 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "./CategoriesSelector.module.css";
 import { useDebounce } from "../hooks/useDebounce";
 import { fetchRegionSuggestions, type GeoapifySuggestion } from "../services/geoapify";
 import { getLanguageSuggestions, getLanguageSuggestionsSync, type LanguageSuggestion } from "../services/languageAutocomplete";
+import { generateWordsFromApi, generateWordsMiniFromApi } from "../services/wordGenerationService";
+import { addWordsToFirestore, setPendingWordsEntry } from "../services/wordsService";
 import { ALL_CATEGORIES } from "../constants/categories";
 import { EXISTING_LANGUAGES, EXISTING_REGIONS } from "../constants/existingLanguageRegion";
+import { ROUTES } from "../constants/strings";
+
+const CUSTOM_LANGS_KEY = "wordgame_custom_languages";
+const CUSTOM_REGIONS_KEY = "wordgame_custom_regions";
+
+function loadCustomLanguages(): string[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_LANGS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function loadCustomRegions(): string[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_REGIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomLanguage(lang: string) {
+  const set = new Set([...loadCustomLanguages(), lang]);
+  localStorage.setItem(CUSTOM_LANGS_KEY, JSON.stringify([...set]));
+}
+
+function saveCustomRegion(region: string) {
+  const set = new Set([...loadCustomRegions(), region]);
+  localStorage.setItem(CUSTOM_REGIONS_KEY, JSON.stringify([...set]));
+}
 
 export type FilterItemType = "category" | "language" | "region";
 
@@ -35,29 +70,54 @@ export default function CategoriesSelector({
   initialItems,
   onChangeSelected,
 }: Props) {
-  const defaultPlayItems: FilterItem[] = [
-    ...baseCategories.map((label, idx) => ({
-      id: `cat_${idx}`,
-      label,
-      type: "category" as const,
-      checked: true,
-      isCustom: false,
-    })),
-    ...EXISTING_LANGUAGES.map((label, idx) => ({
-      id: `lang_${idx}`,
-      label,
-      type: "language" as const,
-      checked: false,
-      isCustom: false,
-    })),
-    ...EXISTING_REGIONS.map((label, idx) => ({
-      id: `region_${idx}`,
-      label,
-      type: "region" as const,
-      checked: false,
-      isCustom: false,
-    })),
-  ];
+  const navigate = useNavigate();
+  const customLangs = useMemo(() => loadCustomLanguages(), []);
+  const customRegions = useMemo(() => loadCustomRegions(), []);
+
+  const defaultPlayItems: FilterItem[] = useMemo(
+    () => [
+      ...baseCategories.map((label, idx) => ({
+        id: `cat_${idx}`,
+        label,
+        type: "category" as const,
+        checked: true,
+        isCustom: false,
+      })),
+      ...EXISTING_LANGUAGES.map((label, idx) => ({
+        id: `lang_${idx}`,
+        label,
+        type: "language" as const,
+        checked: false,
+        isCustom: false,
+      })),
+      ...customLangs
+        .filter((l) => !EXISTING_LANGUAGES.map((x) => x.toLowerCase()).includes(l.toLowerCase()))
+        .map((label, idx) => ({
+          id: `lang_custom_${idx}_${label}`,
+          label,
+          type: "language" as const,
+          checked: false,
+          isCustom: true,
+        })),
+      ...EXISTING_REGIONS.map((label, idx) => ({
+        id: `region_${idx}`,
+        label,
+        type: "region" as const,
+        checked: false,
+        isCustom: false,
+      })),
+      ...customRegions
+        .filter((r) => !EXISTING_REGIONS.map((x) => x.toLowerCase()).includes(r.toLowerCase()))
+        .map((label, idx) => ({
+          id: `region_custom_${idx}_${label}`,
+          label,
+          type: "region" as const,
+          checked: false,
+          isCustom: true,
+        })),
+    ],
+    [baseCategories, customLangs, customRegions]
+  );
 
   const [items, setItems] = useState<FilterItem[]>(initialItems ?? defaultPlayItems);
 
@@ -74,6 +134,9 @@ export default function CategoriesSelector({
   const [selectedAiRegionIndex, setSelectedAiRegionIndex] = useState(-1);
   const [isLoadingAiRegions, setIsLoadingAiRegions] = useState(false);
   const [isLoadingAiLanguages, setIsLoadingAiLanguages] = useState(false);
+  const [isGeneratingWords, setIsGeneratingWords] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [generateSuccess, setGenerateSuccess] = useState(false);
 
   const aiLanguageInputRef = useRef<HTMLInputElement>(null);
   const aiRegionInputRef = useRef<HTMLInputElement>(null);
@@ -244,6 +307,100 @@ export default function CategoriesSelector({
     setItems((prev) => prev.filter((it) => it.id !== id));
   };
 
+  const handleGenerateWords = async () => {
+    const language = aiLanguageInput.trim();
+    const region = aiRegionInput.trim();
+    if (!language || !region) {
+      setGenerateError("Please enter both language and region.");
+      return;
+    }
+
+    setGenerateError(null);
+    setGenerateSuccess(false);
+    setIsGeneratingWords(true);
+
+    try {
+      const { words: miniWords } = await generateWordsMiniFromApi({ language, region });
+      if (miniWords.length > 0) {
+        setPendingWordsEntry(language, region, miniWords);
+      }
+      saveCustomLanguage(language);
+      saveCustomRegion(region);
+
+      const hasLang = items.some(
+        (i) => i.type === "language" && i.label.toLowerCase() === language.toLowerCase()
+      );
+      const hasRegion = items.some(
+        (i) => i.type === "region" && i.label.toLowerCase() === region.toLowerCase()
+      );
+      setItems((prev) => {
+        let next = [...prev];
+        if (!hasLang) {
+          next = [
+            ...next,
+            {
+              id: `lang_custom_${language}`,
+              label: language,
+              type: "language" as const,
+              checked: false,
+              isCustom: true,
+            },
+          ];
+        }
+        if (!hasRegion) {
+          next = [
+            ...next,
+            {
+              id: `region_custom_${region}`,
+              label: region,
+              type: "region" as const,
+              checked: false,
+              isCustom: true,
+            },
+          ];
+        }
+        return next;
+      });
+
+      setGenerateSuccess(true);
+      setShowMissingCombinations(false);
+      setIsGeneratingWords(false);
+      navigate(ROUTES.SETUP);
+
+      (async () => {
+        console.time("[AI word gen] Full generation (AI + network)");
+        let words: import("../services/wordsService").WordDocumentLike[] = [];
+        try {
+          const result = await generateWordsFromApi({ language, region });
+          words = result.words;
+        } finally {
+          console.timeEnd("[AI word gen] Full generation (AI + network)");
+        }
+        if (words.length > 0) {
+          const t0 = performance.now();
+          await addWordsToFirestore(words);
+          setPendingWordsEntry(language, region, words);
+          const firebaseMs = performance.now() - t0;
+          console.log(
+            "[AI word gen] Full generation completed:",
+            words.length,
+            "words. Firebase seed:",
+            firebaseMs.toFixed(0),
+            "ms. Sample:",
+            words.slice(0, 20).map((w) => w.word)
+          );
+        }
+      })().catch((err) => {
+        console.error("[AI word gen] Background full generation failed:", err);
+      });
+    } catch (err) {
+      setGenerateError(
+        err instanceof Error ? err.message : "Generation failed. Is the word-gen server running?"
+      );
+      setIsGeneratingWords(false);
+    }
+  };
+
   return (
     <div className={styles.wrap}>
       <p className={styles.subtext}>
@@ -321,7 +478,7 @@ export default function CategoriesSelector({
                   <input
                     ref={aiRegionInputRef}
                     className={styles.input}
-                    placeholder="e.g. Punjab, Toronto, UK..."
+                    placeholder="e.g. Punjab, Toronto..."
                     value={aiRegionInput}
                     onChange={(e) => {
                       setAiRegionInput(e.target.value);
@@ -359,8 +516,27 @@ export default function CategoriesSelector({
               </div>
             </div>
           </div>
-          <button type="button" className={styles.missingActionButton} disabled aria-disabled="true">
-            Generate words
+          {generateError && (
+            <p className={styles.generateError} role="alert">
+              {generateError}
+            </p>
+          )}
+          {generateSuccess && (
+            <p className={styles.generateSuccess} role="status">
+              New words added successfully. Redirecting to categories…
+            </p>
+          )}
+          <button
+            type="button"
+            className={styles.missingActionButton}
+            onClick={handleGenerateWords}
+            disabled={
+              !aiLanguageInput.trim() ||
+              !aiRegionInput.trim() ||
+              isGeneratingWords
+            }
+          >
+            {isGeneratingWords ? "Generating…" : "Generate words"}
           </button>
         </div>
       )}
