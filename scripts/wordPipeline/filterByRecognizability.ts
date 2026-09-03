@@ -12,6 +12,7 @@ import { prompt } from "./mistralClient";
 const PROJECT_ROOT = path.resolve(process.cwd());
 const CACHE_DIR = path.join(PROJECT_ROOT, "scripts", "wordPipeline", "cache");
 const CATEGORIZED_PATH = path.join(CACHE_DIR, "words_categorized.json");
+const POS_FILTERED_PATH = path.join(CACHE_DIR, "words_pos_filtered.json");
 const PROCESSED_PATH = path.join(CACHE_DIR, "words_processed.json");
 
 const BATCH_SIZE = 30;
@@ -74,12 +75,16 @@ function parseBatchResponse(text: string, batch: CategorizedWord[]): ProcessedWo
 }
 
 async function main() {
-  if (!fs.existsSync(CATEGORIZED_PATH)) {
-    console.error("Run categorizeWithMistral.ts first to create", CATEGORIZED_PATH);
+  const inputPath = fs.existsSync(POS_FILTERED_PATH) ? POS_FILTERED_PATH : CATEGORIZED_PATH;
+  if (!fs.existsSync(inputPath)) {
+    console.error("Run categorizeWithMistral.ts (and optionally filterPartOfSpeech.ts) first:", inputPath);
     process.exit(1);
   }
+  if (inputPath === POS_FILTERED_PATH) {
+    console.log("Using POS-filtered input:", POS_FILTERED_PATH);
+  }
 
-  const categorized = JSON.parse(fs.readFileSync(CATEGORIZED_PATH, "utf-8")) as CategorizedWord[];
+  const categorized = JSON.parse(fs.readFileSync(inputPath, "utf-8")) as CategorizedWord[];
   const sampleSize = process.env.SAMPLE_SIZE ? parseInt(process.env.SAMPLE_SIZE, 10) : categorized.length;
   const words = categorized.slice(0, Number.isNaN(sampleSize) ? categorized.length : sampleSize);
 

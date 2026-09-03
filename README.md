@@ -231,6 +231,26 @@ src/
     └── words.ts          # Word database by category
 ```
 
+## 🧪 Quality Assurance
+
+The app is covered by four test layers: logic unit tests, Newman API contract
+checks, Cypress end-to-end journeys against Firebase emulators, and k6 load
+scenarios. Everything runs in GitHub Actions — smoke on every pull request,
+full regression nightly.
+
+See [docs/qa/README.md](docs/qa/README.md) for the commands, and
+[docs/qa/TEST_STRATEGY.md](docs/qa/TEST_STRATEGY.md) for scope, thresholds, and
+release exit criteria. Known issues are tracked in
+[docs/qa/DEFECTS.md](docs/qa/DEFECTS.md).
+
+```bash
+npm test                # logic tests
+npm run emulators       # Firebase Auth + Firestore emulators (needs Java 17+)
+npm run qa:seed         # deterministic test dataset
+npm run api:test        # Newman API contracts
+npm run build:e2e && npm run e2e:ci   # Cypress smoke suite
+```
+
 ## 🎨 Design Features
 
 - **Modern UI**: Clean, minimalist design with smooth transitions

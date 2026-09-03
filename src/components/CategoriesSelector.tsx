@@ -6,7 +6,7 @@ import { fetchRegionSuggestions, type GeoapifySuggestion } from "../services/geo
 import { getLanguageSuggestions, getLanguageSuggestionsSync, type LanguageSuggestion } from "../services/languageAutocomplete";
 import { generateWordsFromApi, generateWordsMiniFromApi } from "../services/wordGenerationService";
 import { addWordsToFirestore, setPendingWordsEntry } from "../services/wordsService";
-import { ALL_CATEGORIES } from "../constants/categories";
+import { ALL_CATEGORIES, AI_GENERATION_LANGUAGES, isAiGenerationLanguage } from "../constants/categories";
 import { EXISTING_LANGUAGES, EXISTING_REGIONS } from "../constants/existingLanguageRegion";
 import { ROUTES } from "../constants/strings";
 
@@ -59,7 +59,9 @@ export type SelectedFilters = {
 
 type Props = {
   baseCategories?: string[];
-  initialItems?: FilterItem[]; // optional if you later hydrate from store
+  initialItems?: FilterItem[];
+  /** When false (default), no categories are pre-selected — user must choose explicitly. */
+  defaultCategoriesChecked?: boolean;
   onChangeSelected?: (selected: SelectedFilters) => void;
 };
 
@@ -68,6 +70,7 @@ const defaultBaseCategories = [...ALL_CATEGORIES];
 export default function CategoriesSelector({
   baseCategories = defaultBaseCategories,
   initialItems,
+  defaultCategoriesChecked = false,
   onChangeSelected,
 }: Props) {
   const navigate = useNavigate();
@@ -80,7 +83,7 @@ export default function CategoriesSelector({
         id: `cat_${idx}`,
         label,
         type: "category" as const,
-        checked: true,
+        checked: defaultCategoriesChecked,
         isCustom: false,
       })),
       ...EXISTING_LANGUAGES.map((label, idx) => ({
@@ -116,7 +119,7 @@ export default function CategoriesSelector({
           isCustom: true,
         })),
     ],
-    [baseCategories, customLangs, customRegions]
+    [baseCategories, customLangs, customRegions, defaultCategoriesChecked]
   );
 
   const [items, setItems] = useState<FilterItem[]>(initialItems ?? defaultPlayItems);
@@ -312,6 +315,12 @@ export default function CategoriesSelector({
     const region = aiRegionInput.trim();
     if (!language || !region) {
       setGenerateError("Please enter both language and region.");
+      return;
+    }
+    if (!isAiGenerationLanguage(language)) {
+      setGenerateError(
+        `AI generation supports: ${AI_GENERATION_LANGUAGES.join(", ")}. Other languages are not enabled yet.`
+      );
       return;
     }
 

@@ -1,0 +1,182 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save free-tier minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QA_FIREBASE_PROJECT_ID: demo-mafiasword
+  FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+  FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+
+jobs:
+  quality:
+    name: Quality (build, unit tests, word QA)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Non-blocking for now: there is a pre-existing lint backlog.
+      # Remove continue-on-error once that backlog is cleared to enforce lint in CI.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Typecheck + build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Typecheck test suites
+        run: npx tsc --noEmit -p cypress/tsconfig.json
+
+  api-contract:
+    name: API contracts (Newman)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # The Firestore and Auth emulators are Java processes.
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start Firebase emulators
+        run: |
+          npm run emulators &
+          npx wait-on -t 120000 tcp:127.0.0.1:8080 tcp:127.0.0.1:9099
+
+      - name: Seed deterministic dataset
+        run: npm run qa:seed
+
+      - name: Start deterministic model stub
+        run: |
+          npm run qa:ollama-stub &
+          npx wait-on -t 60000 http://127.0.0.1:11434/api/tags
+
+      - name: Start word-gen API
+        env:
+          OLLAMA_BASE_URL: http://127.0.0.1:11434
+          PORT: 3001
+        run: |
+          npm run word-gen-server &
+          npx wait-on -t 60000 http://127.0.0.1:3001/health
+
+      - name: Run Newman contract suite
+        run: npm run api:test
+
+      - name: Upload Newman reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-reports
+          path: reports/newman
+          retention-days: 14
+
+      - name: Summarise API results
+        if: always()
+        run: node scripts/qa/summariseResults.mjs newman >> "$GITHUB_STEP_SUMMARY"
+
+  e2e-smoke:
+    name: E2E smoke (Cypress)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app for testing
+        run: npm run build:e2e
+
+      - name: Start Firebase emulators
+        run: |
+          npm run emulators &
+          npx wait-on -t 120000 tcp:127.0.0.1:8080 tcp:127.0.0.1:9099
+
+      - name: Seed deterministic dataset
+        run: npm run qa:seed
+
+      - name: Run Cypress smoke suite
+        uses: cypress-io/github-action@v6
+        with:
+          install: false
+          browser: electron
+          start: npm run preview:e2e
+          wait-on: http://127.0.0.1:4173
+          wait-on-timeout: 120
+          command: npm run e2e:smoke:ci
+
+      - name: Upload JUnit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-smoke-results
+          path: reports/cypress
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload Cypress screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-smoke-screenshots
+          path: cypress/screenshots
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload Cypress videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-smoke-videos
+          path: cypress/videos
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Summarise E2E results
+        if: always()
+        run: node scripts/qa/summariseResults.mjs cypress >> "$GITHUB_STEP_SUMMARY"

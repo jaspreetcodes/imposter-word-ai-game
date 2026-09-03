@@ -3,22 +3,22 @@ import { useNavigate, useParams } from "react-router-dom";
 import styles from "./PlayerPage.module.css";
 import { useGame } from "../contexts/GameContext";
 import { UI_STRINGS, ROUTES } from "../constants/strings";
+import { revealTimeoutMs } from "../utils/testHooks";
 
 export default function PlayerPage() {
   const { playerId } = useParams<{ playerId: string }>();
   const navigate = useNavigate();
-  const { categoryName, word, wordError, wordLanguage, wordRegion, mafiaId, markRevealed } = useGame();
+  const { categoryName, word, wordError, wordLanguage, wordRegion, mafiaIds, markRevealed } = useGame();
   const [showWord, setShowWord] = useState(true);
   const [timeoutId, setTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const playerNumber = playerId ? parseInt(playerId, 10) : 1;
-  const isMafia = mafiaId === playerNumber;
+  const isMafia = mafiaIds.includes(playerNumber);
 
   useEffect(() => {
-    // Auto-hide after 10 seconds
     const id = setTimeout(() => {
       setShowWord(false);
-    }, 10000);
+    }, revealTimeoutMs());
     setTimeoutId(id);
 
     return () => {
@@ -35,10 +35,12 @@ export default function PlayerPage() {
   };
 
   return (
-    <div className={styles.wrap}>
+    <div className={styles.wrap} data-cy="player-reveal" data-player-id={playerNumber}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <h1 className={styles.title}>{UI_STRINGS.PLAYER_CATEGORY_LABEL} {categoryName ?? "—"}</h1>
+          <h1 className={styles.title} data-cy="player-category">
+            {UI_STRINGS.PLAYER_CATEGORY_LABEL} {categoryName ?? "—"}
+          </h1>
           {(wordLanguage || wordRegion) && (
             <p className={styles.meta}>
               {wordLanguage && <span>Language: {wordLanguage}</span>}
@@ -50,12 +52,13 @@ export default function PlayerPage() {
 
         <div className={styles.content}>
           {wordError && (
-            <div className={styles.wordHidden}>
+            <div className={styles.wordHidden} data-cy="word-error" role="alert">
               <p><strong>No matching word found.</strong></p>
               <p>{wordError}</p>
               <button
                 onClick={() => navigate(ROUTES.SETUP)}
                 className={styles.hideButton}
+                data-cy="change-filters"
                 style={{ marginTop: 12 }}
               >
                 Change filters
@@ -65,12 +68,14 @@ export default function PlayerPage() {
 
           {showWord && (
             <div className={styles.wordContainer}>
-              <p className={styles.word}>{isMafia ? UI_STRINGS.PLAYER_MAFIA_MESSAGE : (word ?? "—")}</p>
+              <p className={styles.word} data-cy="player-word" data-is-mafia={isMafia}>
+                {isMafia ? UI_STRINGS.PLAYER_MAFIA_MESSAGE : (word ?? "—")}
+              </p>
             </div>
           )}
           
           {!showWord && (
-            <div className={styles.wordHidden}>
+            <div className={styles.wordHidden} data-cy="player-word-hidden">
               <p>{UI_STRINGS.PLAYER_WORD_HIDDEN}</p>
             </div>
           )}
@@ -80,10 +85,11 @@ export default function PlayerPage() {
           type="button"
           onClick={() => setShowWord((prev) => !prev)}
           className={styles.toggleButton}
+          data-cy="toggle-word"
         >
           {showWord ? "Hide word" : "Show word"}
         </button>
-        <button onClick={finishAndBack} className={styles.hideButton}>
+        <button onClick={finishAndBack} className={styles.hideButton} data-cy="hide-and-pass">
           {UI_STRINGS.PLAYER_HIDE_BUTTON}
         </button>
       </div>

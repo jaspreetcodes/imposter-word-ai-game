@@ -1,0 +1,4 @@
+{
+  "error": "Generation failed",
+  "message": "Ollama runner terminated unexpectedly. Restart the model host and retry."
+}

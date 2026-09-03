@@ -1,0 +1,538 @@
+{
+  "info": {
+    "name": "Word-gen API contracts",
+    "description": "Contract checks for the Express word-gen API (scripts/wordGenServer.ts). Runs against a seeded Firestore emulator and a deterministic Ollama stub, so every assertion is exact. See docs/qa/TEST_STRATEGY.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Liveness and readiness",
+      "item": [
+        {
+          "name": "GET /health returns the service contract",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "pm.test('is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const body = pm.response.json();",
+                  "pm.test('reports the service as healthy', () => {",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "  pm.expect(body.service).to.eql('word-gen-api');",
+                  "});",
+                  "pm.test('exposes uptime and model', () => {",
+                  "  pm.expect(body.uptimeSeconds).to.be.a('number');",
+                  "  pm.expect(body.model).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('publishes the supported language allowlist', () => {",
+                  "  pm.expect(body.supportedLanguages).to.be.an('array').that.includes('English');",
+                  "});",
+                  "pm.test('answers quickly', () => pm.expect(pm.response.responseTime).to.be.below(Number(pm.environment.get('healthMaxMs'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /ready reflects the model host",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/ready", "host": ["{{baseUrl}}"], "path": ["ready"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('reports a model host check', () => {",
+                  "  pm.expect(body.checks.modelHost).to.have.property('reachable');",
+                  "  pm.expect(body.checks.modelHost).to.have.property('target');",
+                  "});",
+                  "pm.test('status matches reachability', () => {",
+                  "  const expected = body.checks.modelHost.reachable ? 200 : 503;",
+                  "  pm.expect(pm.response.code).to.eql(expected);",
+                  "});",
+                  "if (pm.environment.get('expectReady') === 'true') {",
+                  "  pm.test('model host is reachable in this environment', () => {",
+                  "    pm.expect(body.status).to.eql('ready');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown route returns JSON 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/does-not-exist",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "does-not-exist"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 404', () => pm.response.to.have.status(404));",
+                  "pm.test('returns JSON, not an HTML error page', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "  pm.expect(pm.response.json().error).to.eql('Not found');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OPTIONS preflight allows the browser origin",
+          "request": {
+            "method": "OPTIONS",
+            "header": [
+              { "key": "Origin", "value": "http://127.0.0.1:4173" },
+              { "key": "Access-Control-Request-Method", "value": "POST" },
+              { "key": "Access-Control-Request-Headers", "value": "content-type" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/generate-words",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generate-words"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 204', () => pm.response.to.have.status(204));",
+                  "pm.test('sends the CORS headers the browser needs', () => {",
+                  "  pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.eql('*');",
+                  "  pm.expect(pm.response.headers.get('Access-Control-Allow-Methods')).to.include('POST');",
+                  "  pm.expect(pm.response.headers.get('Access-Control-Allow-Headers')).to.include('Content-Type');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Coverage",
+      "item": [
+        {
+          "name": "Coverage rejects a request with no language or region",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/word-coverage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "word-coverage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 400', () => pm.response.to.have.status(400));",
+                  "pm.test('names the missing fields', () => {",
+                  "  pm.expect(pm.response.json().error).to.eql('Missing language or region');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Coverage rejects an unsupported language",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"{{unsupportedLanguage}}\",\n  \"region\": \"Somalia\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/word-coverage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "word-coverage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 400', () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test('explains why the language is refused', () => {",
+                  "  pm.expect(body.error).to.eql('Language not supported for AI generation');",
+                  "  pm.expect(body.message).to.include(pm.environment.get('unsupportedLanguage'));",
+                  "});",
+                  "pm.test('returns the allowlist so the client can recover', () => {",
+                  "  pm.expect(body.supportedLanguages).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(body.supportedLanguages).to.not.include(pm.environment.get('unsupportedLanguage'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Coverage rejects a malformed JSON body",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"language\": \"English\"," },
+            "url": {
+              "raw": "{{baseUrl}}/api/word-coverage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "word-coverage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds with a controlled 4xx, not a crash', () => {",
+                  "  pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Coverage reports a cache hit for the seeded locale",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"{{coveredLanguage}}\",\n  \"region\": \"{{coveredRegion}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/word-coverage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "word-coverage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "const minPerCategory = Number(pm.environment.get('minPerCategory'));",
+                  "pm.test('echoes the requested locale', () => {",
+                  "  pm.expect(body.language).to.eql(pm.environment.get('coveredLanguage'));",
+                  "  pm.expect(body.region).to.eql(pm.environment.get('coveredRegion'));",
+                  "});",
+                  "pm.test('counts the seeded words', () => {",
+                  "  pm.expect(body.totalWords).to.eql(Number(pm.environment.get('coveredWordCount')));",
+                  "});",
+                  "pm.test('every required category is filled', () => {",
+                  "  pm.expect(body.missingCategories).to.eql([]);",
+                  "  pm.expect(body.cacheMiss).to.eql(false);",
+                  "  Object.entries(body.categoryCounts).forEach(([category, count]) => {",
+                  "    pm.expect(count, category).to.be.at.least(minPerCategory);",
+                  "  });",
+                  "});",
+                  "pm.test('reports seed dictionary availability', () => {",
+                  "  pm.expect(body.hasSeedDictionary).to.be.a('boolean');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Coverage reports a cache miss for an unseeded locale",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"{{emptyLanguage}}\",\n  \"region\": \"{{emptyRegion}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/word-coverage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "word-coverage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('flags the locale as needing generation', () => {",
+                  "  pm.expect(body.cacheMiss).to.eql(true);",
+                  "  pm.expect(body.totalWords).to.eql(0);",
+                  "  pm.expect(body.missingCategories).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Generation",
+      "item": [
+        {
+          "name": "Generate rejects a request with no language or region",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/generate-words",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generate-words"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 400', () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test('tells the client what the body must contain', () => {",
+                  "  pm.expect(body.error).to.eql('Missing language or region');",
+                  "  pm.expect(body.message).to.include('language');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Generate rejects an unsupported language",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"{{unsupportedLanguage}}\",\n  \"region\": \"Somalia\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/generate-words",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generate-words"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 400', () => pm.response.to.have.status(400));",
+                  "pm.test('returns the supported language list', () => {",
+                  "  pm.expect(pm.response.json().supportedLanguages).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mini generation returns one word per category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"{{emptyLanguage}}\",\n  \"region\": \"{{emptyRegion}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/generate-words-mini",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generate-words-mini"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('returns a non-empty word list', () => {",
+                  "  pm.expect(body.words).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "pm.test('every word matches the document contract', () => {",
+                  "  body.words.forEach((w) => {",
+                  "    pm.expect(w.word, 'word').to.be.a('string').and.not.empty;",
+                  "    pm.expect(w.word, `single token: ${w.word}`).to.not.match(/\\s/);",
+                  "    pm.expect(w.category, 'category').to.be.a('string').and.not.empty;",
+                  "    pm.expect(w.languages).to.eql([pm.environment.get('emptyLanguage')]);",
+                  "    pm.expect(w.regions).to.eql([pm.environment.get('emptyRegion')]);",
+                  "  });",
+                  "});",
+                  "pm.test('does not repeat a word within the batch', () => {",
+                  "  const words = body.words.map((w) => `${w.category}::${w.word.toLowerCase()}`);",
+                  "  pm.expect(new Set(words).size).to.eql(words.length);",
+                  "});",
+                  "pm.test('includes the coverage snapshot used for the decision', () => {",
+                  "  pm.expect(body.coverage).to.be.an('object');",
+                  "  pm.expect(body.coverage.cacheMiss).to.be.a('boolean');",
+                  "});",
+                  "pm.test('completes within the generation budget', () => {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(Number(pm.environment.get('generationMaxMs')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Full generation returns the requested count per category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"{{emptyLanguage}}\",\n  \"region\": \"{{emptyRegion}}\",\n  \"countPerCategory\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/generate-words",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generate-words"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('returns words for more than one category', () => {",
+                  "  pm.expect(body.words).to.be.an('array').that.is.not.empty;",
+                  "  const categories = new Set(body.words.map((w) => w.category));",
+                  "  pm.expect(categories.size).to.be.above(1);",
+                  "});",
+                  "pm.test('honours the per-category count', () => {",
+                  "  const counts = {};",
+                  "  body.words.forEach((w) => { counts[w.category] = (counts[w.category] || 0) + 1; });",
+                  "  Object.entries(counts).forEach(([category, count]) => {",
+                  "    pm.expect(count, category).to.be.at.most(2);",
+                  "  });",
+                  "});",
+                  "pm.test('reports whether extended grounding was used', () => {",
+                  "  pm.expect(body.useExtendedGrounding).to.be.a('boolean');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Niche generation rejects a reserved category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"category\": \"Food\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/generate-niche-words",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generate-niche-words"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 400', () => pm.response.to.have.status(400));",
+                  "pm.test('explains the naming rule', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.error).to.eql('Invalid niche category');",
+                  "  pm.expect(body.message).to.include('category');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Niche generation returns English words for a custom topic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"Football Terms\",\n  \"region\": \"UK\",\n  \"count\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/generate-niche-words",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "generate-niche-words"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responds 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('echoes the normalised request', () => {",
+                  "  pm.expect(body.category).to.eql('Football Terms');",
+                  "  pm.expect(body.language).to.eql('English');",
+                  "  pm.expect(body.region).to.eql('UK');",
+                  "});",
+                  "pm.test('returns English-tagged words in that category', () => {",
+                  "  pm.expect(body.words).to.be.an('array').that.is.not.empty;",
+                  "  body.words.forEach((w) => {",
+                  "    pm.expect(w.category).to.eql('Football Terms');",
+                  "    pm.expect(w.languages).to.eql(['English']);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

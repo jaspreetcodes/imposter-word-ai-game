@@ -1,0 +1,13 @@
+{
+  "words": [],
+  "coverage": {
+    "language": "Punjabi",
+    "region": "Punjab",
+    "totalWords": 0,
+    "categoryCounts": {},
+    "missingCategories": ["Food", "Music", "Places"],
+    "cacheMiss": true,
+    "minPerCategory": 5
+  },
+  "useExtendedGrounding": false
+}

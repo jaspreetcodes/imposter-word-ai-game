@@ -31,7 +31,9 @@ export default function RoomRevealPage() {
     }
 
     // If game hasn't started or no mafia assigned, go back
-    if (room.status !== "playing" || !room.gameState.mafiaId) {
+    const hasMafia =
+      (room.gameState.mafiaIds?.length ?? 0) > 0 || !!room.gameState.mafiaId;
+    if (room.status !== "playing" || !hasMafia) {
       if (roomCode) {
         navigate(`${ROUTES.ROOM}/${roomCode}/game`);
       } else {
@@ -48,11 +50,24 @@ export default function RoomRevealPage() {
     }
   };
 
-  if (!room || !room.gameState.mafiaId) {
+  if (!room) {
     return null;
   }
 
-  const mafiaPlayer = players.find((p) => p.userId === room.gameState.mafiaId);
+  const mafiaUserIds =
+    room.gameState.mafiaIds?.length && room.gameState.mafiaIds.length > 0
+      ? room.gameState.mafiaIds
+      : room.gameState.mafiaId
+        ? [room.gameState.mafiaId]
+        : [];
+
+  if (mafiaUserIds.length === 0) {
+    return null;
+  }
+
+  const mafiaLabels = mafiaUserIds
+    .map((uid) => players.find((p) => p.userId === uid)?.displayName ?? "—")
+    .filter(Boolean);
 
   return (
     <div className={styles.wrap}>
@@ -64,7 +79,7 @@ export default function RoomRevealPage() {
         <div className={styles.content}>
           <div>
             <p className={styles.mafiaText}>
-              {mafiaPlayer ? mafiaPlayer.displayName : `${TERMS.PLAYER} —`}
+              {mafiaLabels.length > 0 ? mafiaLabels.join(", ") : `${TERMS.PLAYER} —`}
             </p>
           </div>
         </div>

@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import styles from "./GamePage.module.css";
 import { useGame } from "../contexts/GameContext";
 import { UI_STRINGS, TERMS, ROUTES } from "../constants/strings";
+import { pickOne } from "../utils/random";
+import { gameRandom } from "../utils/testHooks";
 
 export default function GamePage() {
   const navigate = useNavigate();
-  const { revealedIds, players, resetGame, wordError, isLoadingWords, mafiaId } = useGame();
+  const { revealedIds, players, resetGame, wordError, isLoadingWords, mafiaIds } = useGame();
   const [lockedPlayerCount, setLockedPlayerCount] = useState<number | null>(null);
 
   // Lock the player count once we have a valid game
@@ -58,43 +60,51 @@ export default function GamePage() {
 
   // Show start suggestion when all players have revealed
   useEffect(() => {
-    if (allRevealed && !showStartSuggestion && suggestedStartPlayer === null && mafiaId) {
-      // Generate suggestion: pick a random player that is NOT the mafia
+    if (allRevealed && !showStartSuggestion && suggestedStartPlayer === null && mafiaIds.length > 0) {
       const nonMafiaPlayers = Array.from({ length: validPlayers }, (_, i) => i + 1).filter(
-        (id) => id !== mafiaId
+        (id) => !mafiaIds.includes(id)
       );
       
       if (nonMafiaPlayers.length > 0) {
-        const randomIndex = Math.floor(Math.random() * nonMafiaPlayers.length);
-        const suggested = nonMafiaPlayers[randomIndex];
-        const direction = Math.random() < 0.5 ? "clockwise" : "counter-clockwise";
+        const random = gameRandom();
+        const suggested = pickOne(nonMafiaPlayers, random) as number;
+        const direction = random() < 0.5 ? "clockwise" : "counter-clockwise";
         
         setSuggestedStartPlayer(suggested);
         setRoundDirection(direction);
         setShowStartSuggestion(true);
       }
     }
-  }, [allRevealed, showStartSuggestion, suggestedStartPlayer, validPlayers, mafiaId]);
+  }, [allRevealed, showStartSuggestion, suggestedStartPlayer, validPlayers, mafiaIds]);
 
   return (
-    <div className={styles.wrap}>
+    <div className={styles.wrap} data-cy="game-board">
       <header className={styles.header}>
-        <button onClick={() => setShowConfirm(true)} className={styles.backBtn}>
+        <button
+          onClick={() => setShowConfirm(true)}
+          className={styles.backBtn}
+          data-cy="change-players"
+        >
           {UI_STRINGS.GAME_CHANGE_PLAYERS}
         </button>
         <h2 className={styles.playerCount}>
-          {UI_STRINGS.GAME_PLAYERS_LABEL} <strong>{validPlayers}</strong>
+          {UI_STRINGS.GAME_PLAYERS_LABEL} <strong data-cy="game-player-count">{validPlayers}</strong>
         </h2>
       </header>
 
       {isLoadingWords && (
-        <div style={{ margin: "8px 0", color: "var(--text-secondary)", textAlign: "center" }}>
+        <div
+          data-cy="words-loading"
+          style={{ margin: "8px 0", color: "var(--text-secondary)", textAlign: "center" }}
+        >
           Loading word…
         </div>
       )}
 
       {wordError && (
         <div
+          data-cy="word-error"
+          role="alert"
           style={{
             margin: "10px auto 0",
             maxWidth: 720,
@@ -109,19 +119,26 @@ export default function GamePage() {
           <div style={{ fontWeight: 700, marginBottom: 6 }}>No matching word found</div>
           <div style={{ color: "var(--text-secondary)" }}>{wordError}</div>
           <div style={{ marginTop: 10, display: "flex", justifyContent: "center", gap: 10 }}>
-            <button className={styles.backBtn} onClick={() => { resetGame(); setLockedPlayerCount(null); navigate(ROUTES.SETUP); }}>
+            <button
+              className={styles.backBtn}
+              data-cy="change-filters"
+              onClick={() => { resetGame(); setLockedPlayerCount(null); navigate(ROUTES.SETUP); }}
+            >
               Change filters
             </button>
           </div>
         </div>
       )}
 
-      <div className={styles.grid}>
+      <div className={styles.grid} data-cy="player-grid">
         {cards.map((c) => (
           <button
             key={c.id}
             onClick={() => handleCardClick(c.id)}
             disabled={revealedIds.includes(c.id)}
+            data-cy="player-card"
+            data-player-id={c.id}
+            data-revealed={revealedIds.includes(c.id)}
             className={`flip-card ${revealedIds.includes(c.id) ? "revealed" : ""} ${revealedIds.includes(c.id) ? styles.revealed : ""}`}
           >
             <div className="flip-card-inner">
@@ -137,6 +154,7 @@ export default function GamePage() {
           <button 
             onClick={() => navigate(ROUTES.REVEAL_MAFIA)} 
             className={styles.revealMafiaButton}
+            data-cy="reveal-mafia"
           >
             {UI_STRINGS.GAME_REVEAL_MAFIA}
           </button>
@@ -145,7 +163,7 @@ export default function GamePage() {
 
       {showStartSuggestion && suggestedStartPlayer && roundDirection && (
         <div style={overlay} onClick={() => setShowStartSuggestion(false)}>
-          <div style={dialog} onClick={(e) => e.stopPropagation()}>
+          <div style={dialog} onClick={(e) => e.stopPropagation()} data-cy="start-suggestion">
             <h3 style={{ margin: 0, marginBottom: 8, color: "var(--text-primary)", fontSize: 24, fontWeight: 700 }}>
               {UI_STRINGS.GAME_START_SUGGESTION_TITLE}
             </h3>
@@ -163,7 +181,10 @@ export default function GamePage() {
               <div style={{ marginBottom: 12, fontSize: 16, color: "var(--text-secondary)", fontWeight: 600 }}>
                 {UI_STRINGS.GAME_START_PLAYER_SUGGESTION}
               </div>
-              <div style={{ fontSize: 32, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>
+              <div
+                data-cy="suggested-start-player"
+                style={{ fontSize: 32, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}
+              >
                 {TERMS.PLAYER} {suggestedStartPlayer}
               </div>
               
@@ -171,7 +192,10 @@ export default function GamePage() {
                 <div style={{ marginBottom: 8, fontSize: 16, color: "var(--text-secondary)", fontWeight: 600 }}>
                   {UI_STRINGS.GAME_START_DIRECTION}
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: "var(--text-primary)" }}>
+                <div
+                  data-cy="round-direction"
+                  style={{ fontSize: 20, fontWeight: 600, color: "var(--text-primary)" }}
+                >
                   {roundDirection === "clockwise" 
                     ? UI_STRINGS.GAME_START_CLOCKWISE 
                     : UI_STRINGS.GAME_START_COUNTER_CLOCKWISE}
@@ -182,6 +206,7 @@ export default function GamePage() {
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button 
                 className={styles.backBtn} 
+                data-cy="start-suggestion-continue"
                 onClick={() => setShowStartSuggestion(false)}
                 style={{
                   background: "#10b981",
@@ -200,15 +225,22 @@ export default function GamePage() {
 
       {showConfirm && (
         <div style={overlay} onClick={() => setShowConfirm(false)}>
-          <div style={dialog} onClick={(e) => e.stopPropagation()}>
+          <div style={dialog} onClick={(e) => e.stopPropagation()} data-cy="change-players-dialog">
             <h3 style={{ margin: 0, color: "var(--text-primary)" }}>{UI_STRINGS.GAME_CONFIRM_TITLE}</h3>
             <p style={{ margin: "8px 0 16px", color: "var(--text-secondary)" }}>
               {UI_STRINGS.GAME_CONFIRM_MESSAGE}
             </p>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className={styles.backBtn} onClick={() => setShowConfirm(false)}>{UI_STRINGS.GAME_CONFIRM_CANCEL}</button>
+              <button
+                className={styles.backBtn}
+                data-cy="change-players-cancel"
+                onClick={() => setShowConfirm(false)}
+              >
+                {UI_STRINGS.GAME_CONFIRM_CANCEL}
+              </button>
               <button 
                 className={styles.backBtn} 
+                data-cy="change-players-confirm"
                 onClick={handleResetAndGoBack}
               >
                 {UI_STRINGS.GAME_CONFIRM_YES}

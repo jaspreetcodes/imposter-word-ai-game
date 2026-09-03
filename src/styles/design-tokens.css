@@ -1,0 +1,80 @@
+/* Premium game-lobby design tokens (inspired by dark SaaS / party-game UIs) */
+:root {
+  --font-sans: "DM Sans", "Inter", system-ui, -apple-system, sans-serif;
+
+  --bg-app: #0a0b10;
+  --bg-app-gradient: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(99, 102, 241, 0.22),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 100% 0%,
+      rgba(236, 72, 153, 0.12),
+      transparent 50%
+    ),
+    #0a0b10;
+
+  --surface-card: rgba(18, 20, 28, 0.85);
+  --surface-elevated: rgba(28, 31, 42, 0.9);
+  --surface-input: rgba(12, 14, 20, 0.6);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+
+  --text-primary: #f4f4f5;
+  --text-secondary: #d4d4d8;
+  --text-muted: #a1a1aa;
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --accent-primary: #818cf8;
+  --accent-primary-dim: rgba(129, 140, 248, 0.15);
+  --accent-primary-glow: rgba(129, 140, 248, 0.25);
+  --accent-success: #34d399;
+  --accent-success-dim: rgba(52, 211, 153, 0.12);
+  --accent-warm: #f472b6;
+
+  --gradient-hero: linear-gradient(135deg, #93c5fd 0%, #c4b5fd 40%, #f9a8d4 100%);
+  --gradient-cta: linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%);
+  --gradient-ai: linear-gradient(135deg, #a78bfa 0%, #ec4899 100%);
+
+  --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.45);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.35);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Legacy aliases (existing components) */
+  --bg-primary: var(--bg-app);
+  --bg-secondary: var(--surface-elevated);
+  --bg-card: var(--surface-card);
+  --bg-card-gradient: var(--surface-card);
+  --border-color: var(--border-subtle);
+  --border-hover: var(--accent-primary);
+  --shadow: rgba(0, 0, 0, 0.4);
+  --button-bg: var(--accent-primary);
+  --button-text: #0a0b10;
+  --button-hover-brightness: 1.08;
+}
+
+[data-theme="light"] {
+  --bg-app: #f4f4f5;
+  --bg-app-gradient: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(129, 140, 248, 0.15),
+      transparent 55%
+    ),
+    #f4f4f5;
+  --surface-card: #ffffff;
+  --surface-elevated: #fafafa;
+  --surface-input: #ffffff;
+  --surface-hover: rgba(0, 0, 0, 0.04);
+  --text-primary: #18181b;
+  --text-secondary: #3f3f46;
+  --text-muted: #71717a;
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --button-text: #ffffff;
+  --button-bg: #4f46e5;
+}

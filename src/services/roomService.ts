@@ -22,6 +22,7 @@ import {
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../config/firebase";
 import { fetchWords, type WordFilters } from "./wordsService";
+import { computeMafiaCount } from "../utils/mafiaCount";
 
 export interface RoomDocument {
   roomCode: string;
@@ -37,7 +38,10 @@ export interface RoomDocument {
     word: string | null;
     wordLanguage?: string | null; // language[0] of chosen word
     wordRegion?: string | null;   // region[0] / origin of chosen word
-    mafiaId: string | null; // UID of mafia player
+    /** @deprecated Prefer mafiaIds; kept for older clients */
+    mafiaId: string | null;
+    /** All mafia player document IDs (Firestore subcollection doc id) */
+    mafiaIds?: string[];
     revealedPlayerIds: string[]; // UIDs
     suggestedStartPlayer?: number;
     roundDirection?: "clockwise" | "counter-clockwise";
@@ -331,11 +335,13 @@ export async function startGame(roomId: string, hostId: string): Promise<void> {
   const wordLanguage = chosenDoc.languages?.[0] ?? null;
   const wordRegion = chosenDoc.regions?.[0] ?? null;
 
-  // Assign mafia randomly
-  const mafiaPlayer = players[Math.floor(Math.random() * players.length)];
+  const mafiaSlots = computeMafiaCount(players.length);
+  const shuffled = [...players].sort(() => Math.random() - 0.5);
+  const mafiaPlayers = shuffled.slice(0, mafiaSlots);
+  const mafiaIdSet = new Set(mafiaPlayers.map((p) => p.id));
 
   // Generate suggested start player (non-mafia) and direction
-  const nonMafiaPlayers = players.filter((p) => p.id !== mafiaPlayer.id);
+  const nonMafiaPlayers = players.filter((p) => !mafiaIdSet.has(p.id));
   const suggestedStartPlayer =
     nonMafiaPlayers.length > 0
       ? nonMafiaPlayers[Math.floor(Math.random() * nonMafiaPlayers.length)]
@@ -348,14 +354,12 @@ export async function startGame(roomId: string, hostId: string): Promise<void> {
   const batch = writeBatch(db);
   players.forEach((player) => {
     const playerRef = doc(db, "rooms", roomId, "players", player.id);
-    if (player.id === mafiaPlayer.id) {
-      // Mafia gets no word
+    if (mafiaIdSet.has(player.id)) {
       batch.update(playerRef, {
         isMafia: true,
         word: null,
       });
     } else {
-      // Others get the word
       batch.update(playerRef, {
         isMafia: false,
         word: selectedWord,
@@ -370,7 +374,8 @@ export async function startGame(roomId: string, hostId: string): Promise<void> {
     "gameState.word": selectedWord,
     "gameState.wordLanguage": wordLanguage,
     "gameState.wordRegion": wordRegion,
-    "gameState.mafiaId": mafiaPlayer.id,
+    "gameState.mafiaId": mafiaPlayers[0]?.id ?? null,
+    "gameState.mafiaIds": mafiaPlayers.map((p) => p.id),
     "gameState.revealedPlayerIds": [],
     "gameState.suggestedStartPlayer": suggestedStartPlayer,
     "gameState.roundDirection": roundDirection,

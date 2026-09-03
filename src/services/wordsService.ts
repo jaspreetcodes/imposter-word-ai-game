@@ -33,6 +33,13 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../config/firebase";
+import {
+  languageMatches,
+  matchesLocaleFilters,
+  parsePendingLocaleKey,
+  regionMatches,
+} from "../utils/localeMatch";
+import { normalizeCategoryName } from "../utils/normalizeCategory";
 
 export interface WordDocument {
   word: string;
@@ -120,20 +127,21 @@ export async function fetchWords(filters?: WordFilters): Promise<WordDocument[]>
     // Post-filter (for the filter we couldn't apply in query)
     let filtered = words;
     if (useLanguagesInQuery && wantRegions) {
-      filtered = filtered.filter((w) => (w.regions ?? []).some((r) => wantRegions.includes(r)));
+      filtered = filtered.filter((w) =>
+        matchesLocaleFilters(w.languages, w.regions, undefined, wantRegions)
+      );
     }
     if (useRegionsInQuery && wantLanguages) {
-      filtered = filtered.filter((w) => (w.languages ?? []).some((l) => wantLanguages.includes(l)));
+      filtered = filtered.filter((w) =>
+        matchesLocaleFilters(w.languages, w.regions, wantLanguages, undefined)
+      );
     }
 
     // If both were provided and neither was used in query (shouldn't happen), filter both
     if (!useLanguagesInQuery && !useRegionsInQuery) {
-      if (wantLanguages) {
-        filtered = filtered.filter((w) => (w.languages ?? []).some((l) => wantLanguages.includes(l)));
-      }
-      if (wantRegions) {
-        filtered = filtered.filter((w) => (w.regions ?? []).some((r) => wantRegions.includes(r)));
-      }
+      filtered = filtered.filter((w) =>
+        matchesLocaleFilters(w.languages, w.regions, wantLanguages, wantRegions)
+      );
     }
 
     console.log(`✅ Found ${words.length} words matching filters`);
@@ -269,14 +277,18 @@ export function getPendingWordsForFilters(filters?: WordFilters): WordDocument[]
   if (!wantLanguages && !wantRegions) return [];
   const out: WordDocument[] = [];
   for (const [key, words] of Object.entries(store)) {
-    const [lang, reg] = key.split("::");
-    const langMatch = !wantLanguages || wantLanguages.some((l) => l.trim().toLowerCase() === lang);
-    const regMatch = !wantRegions || wantRegions.some((r) => r.trim().toLowerCase() === reg);
+    const parsed = parsePendingLocaleKey(key);
+    if (!parsed) continue;
+    const { language: lang, region: reg } = parsed;
+    const langMatch =
+      !wantLanguages || wantLanguages.some((l) => languageMatches(lang, l));
+    const regMatch =
+      !wantRegions || wantRegions.some((r) => regionMatches(reg, r));
     if (langMatch && regMatch) {
       for (const w of words) {
         out.push({
           word: w.word,
-          category: w.category,
+          category: normalizeCategoryName(w.category),
           languages: w.languages,
           regions: w.regions,
           difficulty: w.difficulty,
@@ -285,6 +297,60 @@ export function getPendingWordsForFilters(filters?: WordFilters): WordDocument[]
     }
   }
   return out;
+}
+
+/** Pending words for one locale (sessionStorage). Useful for preview after AI mini batch. */
+export function getPendingWordsForLocale(
+  language: string,
+  region: string
+): WordDocument[] {
+  return getPendingWordsForFilters({
+    languages: [language.trim()],
+    regions: [region.trim()],
+  });
+}
+
+/** Category → word count for a locale (Firestore + session pending words). */
+export async function fetchCategoryCountsForLocale(
+  language: string,
+  region: string
+): Promise<Record<string, number>> {
+  const lang = language.trim();
+  const reg = region.trim();
+  if (!lang || !reg) return {};
+
+  const counts: Record<string, number> = {};
+  const seen = new Set<string>();
+
+  const tally = (w: WordDocument) => {
+    const hasLocaleMeta =
+      (w.languages?.length ?? 0) > 0 || (w.regions?.length ?? 0) > 0;
+    if (
+      hasLocaleMeta &&
+      !matchesLocaleFilters(w.languages, w.regions, [lang], [reg])
+    ) {
+      return;
+    }
+    const category = normalizeCategoryName(w.category);
+    if (!category) return;
+    const dedupe = `${category}::${w.word.trim().toLowerCase()}`;
+    if (seen.has(dedupe)) return;
+    seen.add(dedupe);
+    counts[category] = (counts[category] ?? 0) + 1;
+  };
+
+  try {
+    const fromStore = await fetchWords({ languages: [lang], regions: [reg] });
+    for (const w of fromStore) tally(w);
+  } catch {
+    for (const w of getPendingWordsForLocale(lang, reg)) tally(w);
+  }
+
+  // Pending is merged in fetchWords when Firebase works; when it returns 0 matches
+  // due to metadata quirks, ensure session words are still counted.
+  for (const w of getPendingWordsForLocale(lang, reg)) tally(w);
+
+  return counts;
 }
 
 const BATCH_LIMIT = 400;

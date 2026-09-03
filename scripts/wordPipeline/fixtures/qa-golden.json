@@ -1,0 +1,11 @@
+{
+  "language": "Punjabi",
+  "region": "Punjab",
+  "cases": [
+    {
+      "category": "Food",
+      "minWords": 1,
+      "mustNotInclude": ["computer", "laptop"]
+    }
+  ]
+}

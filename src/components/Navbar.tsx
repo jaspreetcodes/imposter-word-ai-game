@@ -45,6 +45,7 @@ export default function Navbar() {
             <button
               onClick={() => setShowProfile(!showProfile)}
               className={styles.profileButton}
+              data-cy="nav-profile"
               aria-label="User profile"
             >
               <div className={styles.avatar}>
@@ -63,6 +64,7 @@ export default function Navbar() {
                 <button
                   onClick={handleSignOut}
                   className={styles.signOutButton}
+                  data-cy="nav-sign-out"
                 >
                   {UI_STRINGS.AUTH_SIGN_OUT}
                 </button>
@@ -73,6 +75,7 @@ export default function Navbar() {
           <button
             onClick={() => navigate(ROUTES.LOGIN)}
             className={styles.signInButton}
+            data-cy="nav-sign-in"
           >
             {UI_STRINGS.AUTH_SIGN_IN}
           </button>

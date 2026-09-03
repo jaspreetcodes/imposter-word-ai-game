@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// Rules used by the local emulator suite. The hosted project keeps its own copy
+// in the Firebase console; keep the two in sync when gameplay data changes.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Word catalog: readable by everyone, writable only by signed-in users
+    // (the AI generation flow writes back accepted words).
+    match /words/{wordId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /rooms/{roomId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+
+      match /{document=**} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

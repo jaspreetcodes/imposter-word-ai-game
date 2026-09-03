@@ -1,0 +1,247 @@
+name: Nightly regression
+
+# Full regression is too slow and too environment-dependent for every pull
+# request. It runs on a schedule (and on demand) so slow drift is still caught.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      run_real_model:
+        description: "Also run the real-model API contract and generation reliability checks against staging"
+        type: boolean
+        default: false
+
+concurrency:
+  group: nightly-regression
+  cancel-in-progress: false
+
+env:
+  QA_FIREBASE_PROJECT_ID: demo-mafiasword
+  FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+  FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+
+jobs:
+  e2e-regression:
+    name: E2E regression (all viewports and auth)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - run: npm ci
+
+      - name: Build app for testing
+        run: npm run build:e2e
+
+      - name: Start Firebase emulators
+        run: |
+          npm run emulators &
+          npx wait-on -t 120000 tcp:127.0.0.1:8080 tcp:127.0.0.1:9099
+
+      - name: Seed deterministic dataset
+        run: npm run qa:seed
+
+      - name: Run full Cypress regression
+        uses: cypress-io/github-action@v6
+        with:
+          install: false
+          browser: electron
+          start: npm run preview:e2e
+          wait-on: http://127.0.0.1:4173
+          wait-on-timeout: 120
+          command: npm run e2e:regression:ci
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-e2e-evidence
+          path: |
+            reports/cypress
+            cypress/screenshots
+            cypress/videos
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Summarise E2E results
+        if: always()
+        run: node scripts/qa/summariseResults.mjs cypress >> "$GITHUB_STEP_SUMMARY"
+
+  known-defects:
+    name: Known defects (evidence only)
+    runs-on: ubuntu-latest
+    # These specs reproduce accepted open defects, so a failure here is the
+    # expected state. It records fresh evidence without blocking the pipeline.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - run: npm ci
+
+      - run: npm run build:e2e
+
+      - name: Start Firebase emulators
+        run: |
+          npm run emulators &
+          npx wait-on -t 120000 tcp:127.0.0.1:8080 tcp:127.0.0.1:9099
+
+      - name: Reproduce known defects
+        uses: cypress-io/github-action@v6
+        continue-on-error: true
+        with:
+          install: false
+          browser: electron
+          start: npm run preview:e2e
+          wait-on: http://127.0.0.1:4173
+          wait-on-timeout: 120
+          command: npm run e2e:known-defects:ci
+
+      - name: Upload defect evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: known-defect-evidence
+          path: |
+            reports/cypress
+            cypress/screenshots
+            cypress/videos
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Summarise defect reproductions
+        if: always()
+        run: node scripts/qa/summariseResults.mjs cypress >> "$GITHUB_STEP_SUMMARY"
+
+  load-smoke:
+    name: Load smoke (catalog reads and coverage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install k6
+        uses: grafana/setup-k6-action@v1
+
+      - run: npm ci
+
+      - name: Start Firebase emulators
+        run: |
+          npm run emulators &
+          npx wait-on -t 120000 tcp:127.0.0.1:8080 tcp:127.0.0.1:9099
+
+      - name: Seed deterministic dataset
+        run: npm run qa:seed
+
+      - name: Start deterministic model stub
+        run: |
+          npm run qa:ollama-stub &
+          npx wait-on -t 60000 http://127.0.0.1:11434/api/tags
+
+      - name: Start word-gen API
+        env:
+          OLLAMA_BASE_URL: http://127.0.0.1:11434
+          PORT: 3001
+        run: |
+          npm run word-gen-server &
+          npx wait-on -t 60000 http://127.0.0.1:3001/health
+
+      - name: Run catalog read load smoke
+        run: npm run load:smoke
+
+      - name: Upload k6 summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-read-smoke
+          path: reports/k6
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Summarise load results
+        if: always()
+        run: node scripts/qa/summariseResults.mjs k6 >> "$GITHUB_STEP_SUMMARY"
+
+  real-model-checks:
+    name: Real-model contract and reliability (staging)
+    # Requires a staging host running the word-gen API against a real Ollama
+    # model. Skipped unless STAGING_API_URL is configured and explicitly requested.
+    if: github.event_name == 'workflow_dispatch' && inputs.run_real_model
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install k6
+        uses: grafana/setup-k6-action@v1
+
+      - run: npm ci
+
+      - name: Verify staging is configured
+        env:
+          STAGING_API_URL: ${{ secrets.STAGING_API_URL }}
+        run: |
+          if [ -z "$STAGING_API_URL" ]; then
+            echo "STAGING_API_URL secret is not set; nothing to test." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Real-model API contract
+        env:
+          STAGING_API_URL: ${{ secrets.STAGING_API_URL }}
+        run: npm run api:test:staging -- --env-var "baseUrl=$STAGING_API_URL"
+
+      - name: Generation reliability
+        env:
+          BASE_URL: ${{ secrets.STAGING_API_URL }}
+        run: npm run load:generation
+
+      - name: Upload staging evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-evidence
+          path: |
+            reports/newman
+            reports/k6
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Summarise staging results
+        if: always()
+        run: |
+          node scripts/qa/summariseResults.mjs newman >> "$GITHUB_STEP_SUMMARY"
+          node scripts/qa/summariseResults.mjs k6 >> "$GITHUB_STEP_SUMMARY"

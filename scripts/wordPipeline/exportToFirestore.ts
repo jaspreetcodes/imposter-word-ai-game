@@ -31,12 +31,21 @@ const DEFAULT_LANGUAGES = ["English"];
 const DEFAULT_REGIONS = ["US", "UK", "Canada"];
 
 function makeSeedDocs(processed: ProcessedWord[]): SeedWordDoc[] {
+  const languages = process.env.LANGUAGE
+    ? [process.env.LANGUAGE.trim()]
+    : DEFAULT_LANGUAGES;
+  const regions = process.env.REGION
+    ? [process.env.REGION.trim()]
+    : process.env.REGIONS
+      ? process.env.REGIONS.split(",").map((r) => r.trim()).filter(Boolean)
+      : DEFAULT_REGIONS;
+
   return processed.map((p) => ({
     word: p.word.trim(),
     category: p.category.trim(),
     difficulty: p.difficulty ?? "medium",
-    languages: [...DEFAULT_LANGUAGES],
-    regions: [...DEFAULT_REGIONS],
+    languages: [...languages],
+    regions: [...regions],
   }));
 }
 

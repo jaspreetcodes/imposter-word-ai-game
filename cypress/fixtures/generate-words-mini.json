@@ -1,0 +1,26 @@
+{
+  "words": [
+    {
+      "word": "fixturekheer",
+      "category": "Food",
+      "languages": ["Punjabi"],
+      "regions": ["Punjab"]
+    },
+    {
+      "word": "fixturedhol",
+      "category": "Music",
+      "languages": ["Punjabi"],
+      "regions": ["Punjab"]
+    }
+  ],
+  "coverage": {
+    "language": "Punjabi",
+    "region": "Punjab",
+    "totalWords": 2,
+    "categoryCounts": { "Food": 1, "Music": 1 },
+    "missingCategories": ["Places"],
+    "cacheMiss": true,
+    "minPerCategory": 5
+  },
+  "useExtendedGrounding": false
+}

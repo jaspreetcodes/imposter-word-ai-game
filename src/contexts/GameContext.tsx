@@ -2,7 +2,10 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { words as allWords } from "../assets/words"; // Fallback
 import { STORAGE_KEYS } from "../constants/strings";
-import { fetchWords, type WordFilters } from "../services/wordsService";
+import { fetchWords, type WordDocument, type WordFilters } from "../services/wordsService";
+import { computeMafiaCount } from "../utils/mafiaCount";
+import { pickOne, shuffle } from "../utils/random";
+import { gameRandom } from "../utils/testHooks";
 
 export interface GameState {
   players: number;
@@ -11,7 +14,8 @@ export interface GameState {
   wordError?: string | null;
   wordLanguage?: string | null; // language[0] of chosen word
   wordRegion?: string | null;   // region[0] / origin of chosen word
-  mafiaId: number | null;
+  /** Player numbers (1-based) who are mafia */
+  mafiaIds: number[];
   revealedIds: number[]; // store as array for serialization
   selectedCategories: string[]; // selected categories for word selection
   selectedLanguages?: string[]; // selected languages for word selection
@@ -40,7 +44,7 @@ const DEFAULT_STATE: GameState = {
   categoryName: null,
   word: null,
   wordError: null,
-  mafiaId: null,
+  mafiaIds: [],
   revealedIds: [],
   selectedCategories: [],
   selectedLanguages: [],
@@ -56,10 +60,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (raw) {
         const parsed = JSON.parse(raw) as any;
         // Migrate old imposterId to mafiaId if needed
-        if ('imposterId' in parsed && !('mafiaId' in parsed)) {
+        if ("imposterId" in parsed && !("mafiaId" in parsed) && !("mafiaIds" in parsed)) {
           parsed.mafiaId = parsed.imposterId;
           delete parsed.imposterId;
         }
+        const migratedMafiaIds: number[] = Array.isArray(parsed.mafiaIds)
+          ? parsed.mafiaIds.filter((x: unknown) => typeof x === "number")
+          : parsed.mafiaId != null
+            ? [Number(parsed.mafiaId)]
+            : [];
         // Ensure all required fields exist
         return {
           players: parsed.players || 0,
@@ -67,7 +76,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           word: parsed.word || null,
           wordLanguage: parsed.wordLanguage ?? null,
           wordRegion: parsed.wordRegion ?? null,
-          mafiaId: parsed.mafiaId || null,
+          mafiaIds: migratedMafiaIds,
           revealedIds: parsed.revealedIds || [],
           selectedCategories: parsed.selectedCategories || [],
           selectedLanguages: parsed.selectedLanguages || [],
@@ -149,9 +158,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+      const random = gameRandom();
+      const randomCategory = pickOne(categories, random) as string;
       const categoryDocs = wordsByCategory[randomCategory];
-      const chosenDoc = categoryDocs[Math.floor(Math.random() * categoryDocs.length)];
+      const chosenDoc = pickOne(categoryDocs, random) as WordDocument;
 
       return {
         categoryName: randomCategory,
@@ -184,9 +194,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       pool = allWords; // Fallback to all if no matches
     }
     
-    const cat = pool[Math.floor(Math.random() * pool.length)];
+    const random = gameRandom();
+    const cat = pickOne(pool, random) as (typeof pool)[number];
     const wordsArray: string[] = Array.isArray(cat.words) ? cat.words : [];
-    const word = wordsArray[Math.floor(Math.random() * wordsArray.length)];
+    const word = pickOne(wordsArray, random) as string;
     return { categoryName: cat.name as string, word };
   };
 
@@ -201,15 +212,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
       selectedLanguages,
       selectedRegions
     );
-    const mafiaId = Math.max(1, Math.floor(Math.random() * players) + 1);
-    setState({ 
-      players, 
-      categoryName: chosenCategory, 
-      word, 
+    const k = computeMafiaCount(players);
+    const nums = shuffle(
+      Array.from({ length: players }, (_, i) => i + 1),
+      gameRandom()
+    );
+    const mafiaIds = nums.slice(0, k);
+    setState({
+      players,
+      categoryName: chosenCategory,
+      word,
       wordError: error ?? null,
       wordLanguage: wordLanguage ?? null,
       wordRegion: wordRegion ?? null,
-      mafiaId, 
+      mafiaIds,
       revealedIds: [],
       selectedCategories: selectedCategories || [],
       selectedLanguages: selectedLanguages || [],

@@ -61,8 +61,11 @@
   margin: 0;
   font-size: 24px;
   font-weight: 700;
-  color: var(--text-primary);
-  transition: color 0.3s ease;
+  letter-spacing: -0.02em;
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   cursor: pointer;
   position: relative;
   z-index: 1;

@@ -5,14 +5,14 @@ import { useGame } from "../contexts/GameContext";
 
 export default function mafiaRevealPage() {
   const navigate = useNavigate();
-  const { mafiaId, resetGame, players } = useGame();
+  const { mafiaIds, resetGame, players } = useGame();
 
   // Redirect to game if no mafia or game not started
   useEffect(() => {
-    if (!mafiaId || !players || players === 0) {
+    if (mafiaIds.length === 0 || !players || players === 0) {
       navigate("/game");
     }
-  }, [mafiaId, players, navigate]);
+  }, [mafiaIds, players, navigate]);
 
   const handleNewGame = () => {
     resetGame();
@@ -20,7 +20,7 @@ export default function mafiaRevealPage() {
   };
 
   // Don't render if no mafia
-  if (!mafiaId) {
+  if (mafiaIds.length === 0) {
     return null;
   }
 
@@ -33,7 +33,11 @@ export default function mafiaRevealPage() {
 
         <div className={styles.content}>
           <div>
-            <p className={styles.mafiaText}>Player {mafiaId ?? "—"}</p>
+            <p className={styles.mafiaText}>
+              {mafiaIds.length === 1
+                ? `Player ${mafiaIds[0]}`
+                : `Players: ${[...mafiaIds].sort((a, b) => a - b).join(", ")}`}
+            </p>
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { isValidEmail } from "../services/authService";
 import { UI_STRINGS, ROUTES } from "../constants/strings";
-import styles from "./LoginPage.module.css";
+import LobbyShell, { lobbyStyles as s } from "../components/layout/LobbyShell";
 
 export default function SignUpPage() {
   const navigate = useNavigate();
@@ -17,15 +17,14 @@ export default function SignUpPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
-  // Pre-fill email from query params and show message if redirected from login
   useEffect(() => {
     const emailParam = searchParams.get("email");
     const messageParam = searchParams.get("message");
-    
+
     if (emailParam) {
       setEmail(emailParam);
     }
-    
+
     if (messageParam) {
       setError(messageParam);
     }
@@ -36,18 +35,18 @@ export default function SignUpPage() {
     setEmail(value);
     setEmailError(null);
     setError(null);
-    
-    // Validate email in real-time
+
     if (value && !isValidEmail(value)) {
       setEmailError(UI_STRINGS.AUTH_EMAIL_INVALID);
     }
   };
 
-  // Redirect if already logged in or just returned from Google redirect
   useEffect(() => {
     if (user && !loading) {
-      // If we're on signup/login page and user is logged in, go to home
-      if (window.location.pathname === ROUTES.SIGNUP || window.location.pathname === ROUTES.LOGIN) {
+      if (
+        window.location.pathname === ROUTES.SIGNUP ||
+        window.location.pathname === ROUTES.LOGIN
+      ) {
         navigate(ROUTES.HOME, { replace: true });
       }
     }
@@ -57,27 +56,25 @@ export default function SignUpPage() {
     e.preventDefault();
     setError(null);
     setEmailError(null);
-    
-    // Validate email
+
     if (!isValidEmail(email)) {
       setEmailError(UI_STRINGS.AUTH_EMAIL_INVALID);
       return;
     }
-    
-    // Validate display name
+
     if (!displayName.trim()) {
       setError("Display name is required");
       return;
     }
-    
+
     setIsSubmitting(true);
 
     try {
       await signUp(email, password, displayName);
       navigate(ROUTES.HOME);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Sign up error:", err);
-      const errorCode = err.code;
+      const errorCode = (err as { code?: string }).code;
       if (errorCode === "auth/invalid-email") {
         setError(UI_STRINGS.AUTH_ERROR_INVALID_EMAIL);
       } else if (errorCode === "auth/weak-password") {
@@ -87,7 +84,7 @@ export default function SignUpPage() {
       } else if (errorCode === "auth/network-request-failed") {
         setError(UI_STRINGS.AUTH_ERROR_NETWORK);
       } else {
-        setError(err.message || "Failed to sign up");
+        setError((err as Error).message || "Failed to sign up");
       }
     } finally {
       setIsSubmitting(false);
@@ -100,22 +97,22 @@ export default function SignUpPage() {
 
     try {
       await signInGoogle();
-      // If popup succeeded, navigate to home
       navigate(ROUTES.HOME);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Google sign in error:", err);
-      if (err.message === "REDIRECT_INITIATED") {
-        // Redirect was initiated, don't show error
-        // The page will reload after redirect, AuthContext will handle navigation
+      const e = err as { code?: string; message?: string };
+      if (e.message === "REDIRECT_INITIATED") {
         return;
       }
-      // Handle "too few permissions" or other errors
-      if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
+      if (
+        e.code === "auth/popup-closed-by-user" ||
+        e.code === "auth/cancelled-popup-request"
+      ) {
         setError("Sign-up was cancelled. Please try again.");
-      } else if (err.message?.includes("permissions")) {
+      } else if (e.message?.includes("permissions")) {
         setError("Please grant all requested permissions to complete sign up.");
       } else {
-        setError(err.message || "Failed to sign up with Google");
+        setError(e.message || "Failed to sign up with Google");
       }
       setIsSubmitting(false);
     }
@@ -123,97 +120,109 @@ export default function SignUpPage() {
 
   if (loading) {
     return (
-      <div className={styles.wrap}>
-        <div className={styles.card}>Loading...</div>
-      </div>
+      <LobbyShell title={UI_STRINGS.AUTH_SIGN_UP} subtitle="Loading…" />
     );
   }
 
   return (
-    <div className={styles.wrap}>
-      <div className={styles.card}>
-        <h1 className={styles.title}>{UI_STRINGS.AUTH_SIGN_UP}</h1>
+    <LobbyShell
+      badge="Online play"
+      title={UI_STRINGS.AUTH_SIGN_UP}
+      subtitle="Create an account to host or join rooms"
+    >
+      {error && (
+        <div className={s.error} role="alert" data-cy="auth-error">
+          {error}
+        </div>
+      )}
 
-        {error && <div className={styles.error}>{error}</div>}
+      <form onSubmit={handleSubmit} className={s.form} data-cy="sign-up-form">
+        <div className={s.field}>
+          <label htmlFor="displayName" className={s.label}>
+            {UI_STRINGS.AUTH_DISPLAY_NAME}
+          </label>
+          <input
+            id="displayName"
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className={s.input}
+            data-cy="auth-display-name"
+            required
+            disabled={isSubmitting}
+          />
+        </div>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.field}>
-            <label htmlFor="displayName" className={styles.label}>
-              {UI_STRINGS.AUTH_DISPLAY_NAME}
-            </label>
-            <input
-              id="displayName"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className={styles.input}
-              required
-              disabled={isSubmitting}
-            />
-          </div>
+        <div className={s.field}>
+          <label htmlFor="email" className={s.label}>
+            {UI_STRINGS.AUTH_EMAIL}
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={handleEmailChange}
+            className={`${s.input} ${emailError ? s.inputError : ""}`}
+            data-cy="auth-email"
+            required
+            disabled={isSubmitting}
+          />
+          {emailError && (
+            <div className={s.fieldError} data-cy="auth-email-error">
+              {emailError}
+            </div>
+          )}
+        </div>
 
-          <div className={styles.field}>
-            <label htmlFor="email" className={styles.label}>
-              {UI_STRINGS.AUTH_EMAIL}
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={handleEmailChange}
-              className={`${styles.input} ${emailError ? styles.inputError : ""}`}
-              required
-              disabled={isSubmitting}
-            />
-            {emailError && <div className={styles.fieldError}>{emailError}</div>}
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="password" className={styles.label}>
-              {UI_STRINGS.AUTH_PASSWORD}
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={styles.input}
-              required
-              minLength={6}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className={styles.button}
-            disabled={isSubmitting || !!emailError}
-          >
-            {isSubmitting ? "Signing up..." : UI_STRINGS.AUTH_SIGN_UP}
-          </button>
-        </form>
-
-        <div className={styles.divider}>
-          <span>or</span>
+        <div className={s.field}>
+          <label htmlFor="password" className={s.label}>
+            {UI_STRINGS.AUTH_PASSWORD}
+          </label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={s.input}
+            data-cy="auth-password"
+            required
+            minLength={6}
+            disabled={isSubmitting}
+          />
         </div>
 
         <button
-          onClick={handleGoogleSignIn}
-          className={styles.googleButton}
-          disabled={isSubmitting}
+          type="submit"
+          className={s.ctaPrimary}
+          data-cy="auth-submit"
+          disabled={isSubmitting || !!emailError}
         >
-          {UI_STRINGS.AUTH_GOOGLE_SIGN_UP}
+          {isSubmitting ? "Signing up…" : UI_STRINGS.AUTH_SIGN_UP}
         </button>
+      </form>
 
-        <div className={styles.footer}>
-          <p>
-            {UI_STRINGS.AUTH_HAVE_ACCOUNT}{" "}
-            <Link to={ROUTES.LOGIN} className={styles.link}>
-              {UI_STRINGS.AUTH_SIGN_IN_LINK}
-            </Link>
-          </p>
-        </div>
+      <div className={s.divider}>
+        <span>or</span>
       </div>
-    </div>
+
+      <button
+        type="button"
+        onClick={handleGoogleSignIn}
+        className={s.googleButton}
+        data-cy="auth-google"
+        disabled={isSubmitting}
+      >
+        {UI_STRINGS.AUTH_GOOGLE_SIGN_UP}
+      </button>
+
+      <div className={s.footer}>
+        <p>
+          {UI_STRINGS.AUTH_HAVE_ACCOUNT}{" "}
+          <Link to={ROUTES.LOGIN} className={s.link}>
+            {UI_STRINGS.AUTH_SIGN_IN_LINK}
+          </Link>
+        </p>
+      </div>
+    </LobbyShell>
   );
 }
